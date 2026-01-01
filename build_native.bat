@@ -14,7 +14,7 @@ dir "%PROJECT_ROOT%\tools"
 exit /b 1
 
 :found
-"%TCC_EXE%" "%PROJECT_ROOT%\src\main.c" -o "%PROJECT_ROOT%\tnrm1n4l.exe" -luser32 -lkernel32
+"%TCC_EXE%" "%PROJECT_ROOT%\src\main.c" -o "%PROJECT_ROOT%\tnrm1n4l.exe" -luser32 -lkernel32 -ladvapi32 -lshell32
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Compilation Failed.
     exit /b 1

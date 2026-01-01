@@ -3,8 +3,9 @@
 #include <string.h>
 #include <windows.h>
 #include <time.h>
+#include <direct.h> // For _getcwd, _chdir
 
-// --- Missing Definitions for TCC ---
+// --- TCC Compatibility & Manual Definitions ---
 #ifndef TH32CS_SNAPPROCESS
 #define TH32CS_SNAPPROCESS 0x00000002
 #endif
@@ -25,275 +26,390 @@ typedef struct tagPROCESSENTRY32 {
 typedef HANDLE (WINAPI *PtrCreateToolhelp32Snapshot)(DWORD, DWORD);
 typedef BOOL (WINAPI *PtrProcess32First)(HANDLE, PROCESSENTRY32*);
 typedef BOOL (WINAPI *PtrProcess32Next)(HANDLE, PROCESSENTRY32*);
-
-// --- System Definitions ---
-#define MAX_CMD_LEN 256
-#define MAX_ARGS 16
-
-// Colors
-#define COL_RESET   7
-#define COL_GREEN   10
-#define COL_RED     12
-#define COL_CYAN    11
-#define COL_YELLOW  14
-
-// --- Global State ---
-HANDLE hConsole;
-int running = 1;
-
-// --- Helper Functions ---
-void set_color(int color) {
-    SetConsoleTextAttribute(hConsole, color);
-}
-
-void print_header() {
-    set_color(COL_GREEN);
-    printf("TNRM1N4L v1.0 [KERNEL MODE]\n");
-    set_color(COL_RESET);
-}
-
-void print_time() {
-    SYSTEMTIME st;
-    GetLocalTime(&st);
-    printf("[%02d:%02d:%02d.%03d] ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-}
-
-// --- Commands ---
-
-// 1. SYS: System Monitor
 typedef BOOL (WINAPI *PtrGlobalMemoryStatusEx)(LPMEMORYSTATUSEX);
 
-void cmd_sys() {
-    HMODULE hKernel = GetModuleHandle("kernel32.dll");
-    if (!hKernel) return;
+// --- Constants ---
+#define MAX_CMD_LEN 512
+#define MAX_ARGS 32
+#define VERSION "2.0 (Mega)"
 
-    PtrGlobalMemoryStatusEx pGlobalMemoryStatusEx = (PtrGlobalMemoryStatusEx)GetProcAddress(hKernel, "GlobalMemoryStatusEx");
-    if (!pGlobalMemoryStatusEx) {
-        printf("Error: GlobalMemoryStatusEx not supported.\n");
-        return;
-    }
+// --- Colors ---
+#define C_RESET 7
+#define C_OK    10 // Green
+#define C_ERR   12 // Red
+#define C_INFO  11 // Cyan
+#define C_WARN  14 // Yellow
+#define C_HEAD  13 // Magenta for headers
 
-    MEMORYSTATUSEX memInfo;
-    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-    pGlobalMemoryStatusEx(&memInfo);
+// --- Globals ---
+HANDLE hConsole;
+int running = 1;
+char current_dir[MAX_PATH];
 
-    DWORDLONG totalPhys = memInfo.ullTotalPhys / 1024 / 1024;
-    DWORDLONG usedPhys = (memInfo.ullTotalPhys - memInfo.ullAvailPhys) / 1024 / 1024;
-    
-    set_color(COL_CYAN);
-    printf("\n--- SYSTEM MONITOR ---\n");
-    printf("RAM Total : %llu MB\n", totalPhys);
-    printf("RAM Used  : %llu MB\n", usedPhys);
-    printf("Memory Load: %ld%%\n", memInfo.dwMemoryLoad);
-    set_color(COL_RESET);
+// --- Helper Functions ---
+void set_col(int c) { SetConsoleTextAttribute(hConsole, c); }
+
+void update_cwd() {
+    _getcwd(current_dir, MAX_PATH);
 }
 
-// 3. PROC: Process Viewer (Dynamic Loading)
-void cmd_proc() {
-    HMODULE hKernel = GetModuleHandle("kernel32.dll");
-    if (!hKernel) return;
-
-    PtrCreateToolhelp32Snapshot pCreateSnapshot = (PtrCreateToolhelp32Snapshot)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
-    PtrProcess32First pProcessFirst = (PtrProcess32First)GetProcAddress(hKernel, "Process32First");
-    PtrProcess32Next pProcessNext = (PtrProcess32Next)GetProcAddress(hKernel, "Process32Next");
-
-    if (!pCreateSnapshot || !pProcessFirst || !pProcessNext) {
-        printf("Error: Could not load process APIs.\n");
-        return;
-    }
-
-    HANDLE hSnapshot = pCreateSnapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) return;
-
-    PROCESSENTRY32 pe32;
-    pe32.dwSize = sizeof(PROCESSENTRY32);
-
-    if (pProcessFirst(hSnapshot, &pe32)) {
-        set_color(COL_YELLOW);
-        printf("\nPID\t\tNAME\n");
-        printf("------\t\t--------------------\n");
-        set_color(COL_RESET);
-        int count = 0;
-        do {
-            printf("%d\t\t%s\n", pe32.th32ProcessID, pe32.szExeFile);
-            count++;
-            if (count > 20) {
-                printf("... (Limit reached, use 'all' for more)\n");
-                break;
-            }
-        } while (pProcessNext(hSnapshot, &pe32));
-    }
-    CloseHandle(hSnapshot);
-}
-
-// 4. HEX: Hex Dump
-void cmd_hex(const char* filename) {
-    if (!filename) {
-        printf("Usage: hex <filename>\n");
-        return;
-    }
-
-    FILE* fp = fopen(filename, "rb");
-    if (!fp) {
-        printf("Error: Could not open file '%s'\n", filename);
-        return;
-    }
-
-    unsigned char buffer[16];
-    size_t bytesRead;
-    size_t offset = 0;
-
+void print_header(const char* title) {
     printf("\n");
-    while ((bytesRead = fread(buffer, 1, 16, fp)) > 0) {
-        set_color(COL_CYAN);
-        printf("%08zX  ", offset); // Offset
-        set_color(COL_RESET);
-
-        // Hex bytes
-        for (size_t i = 0; i < 16; i++) {
-            if (i < bytesRead) printf("%02X ", buffer[i]);
-            else printf("   ");
-        }
-
-        printf(" |");
-        // ASCII char
-        for (size_t i = 0; i < bytesRead; i++) {
-            if (buffer[i] >= 32 && buffer[i] <= 126) printf("%c", buffer[i]);
-            else printf(".");
-        }
-        printf("|\n");
-        offset += 16;
-        if (offset > 512) { // Safety break
-             printf("... (Truncated for view)\n");
-             break;
-        }
-    }
-    fclose(fp);
+    set_col(C_HEAD);
+    printf("=== %s ===\n", title);
+    set_col(C_RESET);
 }
 
-// 5. LS: List Directory
-void cmd_ls() {
-    WIN32_FIND_DATA findData;
-    HANDLE hFind = FindFirstFile("*", &findData);
+// --- COMMAND IMPLEMENTATIONS ---
 
-    if (hFind == INVALID_HANDLE_VALUE) {
-        printf("Error listing directory.\n");
-        return;
+// [SYSTEM]
+void cmd_sys(char** args, int c) {
+    HMODULE hKernel = GetModuleHandle("kernel32.dll");
+    PtrGlobalMemoryStatusEx pGlobalMemoryStatusEx = (PtrGlobalMemoryStatusEx)GetProcAddress(hKernel, "GlobalMemoryStatusEx");
+    
+    if (pGlobalMemoryStatusEx) {
+        MEMORYSTATUSEX mem;
+        mem.dwLength = sizeof(mem);
+        pGlobalMemoryStatusEx(&mem);
+        print_header("SYSTEM MONITOR");
+        printf("RAM Total: %llu MB\n", mem.ullTotalPhys/1024/1024);
+        printf("RAM Free : %llu MB\n", mem.ullAvailPhys/1024/1024);
+        printf("Page File: %llu MB\n", mem.ullTotalPageFile/1024/1024);
+        printf("Load     : %ld%%\n", mem.dwMemoryLoad);
     }
-
-    set_color(COL_CYAN);
-    printf("\n  Attrib\tSize\t\tName\n");
-    printf("  ------\t----\t\t----\n");
-    set_color(COL_RESET);
-
-    do {
-        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            set_color(COL_YELLOW);
-            printf("  <DIR>\t\t-\t\t%s\n", findData.cFileName);
-        } else {
-            set_color(COL_RESET);
-            printf("  FILE\t\t%ld\t\t%s\n", (findData.nFileSizeHigh * (MAXDWORD+1)) + findData.nFileSizeLow, findData.cFileName);
-        }
-    } while (FindNextFile(hFind, &findData));
-    FindClose(hFind);
-    set_color(COL_RESET);
 }
 
-// 7. MKFILE: Create File
-void cmd_mkfile(const char* filename) {
-    if (!filename) {
-        printf("Usage: mkfile <filename>\n");
-        return;
-    }
-    FILE* fp = fopen(filename, "w");
-    if (fp) {
-        fprintf(fp, "Created by TNRM1N4L");
-        fclose(fp);
-        printf("File '%s' created.\n", filename);
+void cmd_whoami(char** args, int c) {
+    char user[256];
+    DWORD len = 256;
+    if (GetUserName(user, &len)) {
+        printf("User: %s\n", user);
     } else {
-        printf("Error creating file.\n");
+        printf("Error getting username.\n");
     }
 }
 
-// 9. MATRIX: Screensaver
-void cmd_matrix() {
-    system("cls");
-    set_color(COL_GREEN);
-    printf("Entering MATRIX mode. Press CTRL+C to Abort (TODO: Async implementation)\n");
-    Sleep(1000);
-    // Note: A true async matrix needs non-blocking input, simplifying for day 1
-    for(int i=0; i<500; i++) {
-        for(int j=0; j<80; j++) {
-            if (rand() % 10 > 8) printf("%c", (rand() % 94) + 33);
-            else printf(" ");
+void cmd_hostname(char** args, int c) {
+    char host[256];
+    DWORD len = 256;
+    if (GetComputerName(host, &len)) {
+        printf("Hostname: %s\n", host);
+    }
+}
+
+void cmd_os(char** args, int c) {
+    OSVERSIONINFO os;
+    os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    // GetVersionEx is deprecated but works for basic info or use cmd /c ver
+    system("cmd /c ver");
+}
+
+void cmd_uptime(char** args, int c) {
+    DWORD ticks = GetTickCount();
+    unsigned int sec = ticks / 1000;
+    unsigned int min = sec / 60;
+    unsigned int hour = min / 60;
+    printf("System Uptime: %u hours, %u minutes, %u seconds\n", hour, min%60, sec%60);
+}
+
+void cmd_drives(char** args, int c) {
+    DWORD drives = GetLogicalDrives();
+    print_header("LOGICAL DRIVES");
+    for(int i=0; i<26; i++) {
+        if ((drives >> i) & 1) {
+            printf("%c:\\ ", 'A'+i);
         }
-        // Sleep(10); // Too fast is cool
     }
-    set_color(COL_RESET);
-    system("cls");
-    printf("Matrix disconnected.\n");
+    printf("\n");
 }
 
-void cmd_help() {
-    printf("\n--- AVAILABLE COMMANDS (v1.0) ---\n");
-    printf(" sys      : System Monitor (RAM/CPU)\n");
-    printf(" proc     : Process Viewer\n");
-    printf(" ls       : List Directory\n");
-    printf(" hex      : Hex Dump Viewer <file>\n");
-    printf(" mkfile   : Create File <name>\n");
-    printf(" matrix   : Screensaver\n");
-    printf(" time     : Show Nano Clock\n");
-    printf(" cls      : Clear Screen\n");
-    printf(" shutdown : Exit TNRM1N4L\n");
+void cmd_env(char** args, int c) {
+    LPTSTR lpszVariable; 
+    LPTCH lpvEnv; 
+ 
+    lpvEnv = GetEnvironmentStrings(); 
+    if (lpvEnv == NULL) return;
+ 
+    lpszVariable = (LPTSTR) lpvEnv; 
+    while (*lpszVariable) { 
+        printf("%s\n", lpszVariable); 
+        lpszVariable += lstrlen(lpszVariable) + 1; 
+    } 
+    FreeEnvironmentStrings(lpvEnv);
 }
 
+void cmd_proc(char** args, int c) {
+    HMODULE hKernel = GetModuleHandle("kernel32.dll");
+    PtrCreateToolhelp32Snapshot pSnap = (PtrCreateToolhelp32Snapshot)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
+    PtrProcess32First pFirst = (PtrProcess32First)GetProcAddress(hKernel, "Process32First");
+    PtrProcess32Next pNext = (PtrProcess32Next)GetProcAddress(hKernel, "Process32Next");
+
+    if (pSnap && pFirst && pNext) {
+        HANDLE hSnap = pSnap(TH32CS_SNAPPROCESS, 0);
+        if (hSnap != INVALID_HANDLE_VALUE) {
+            PROCESSENTRY32 pe;
+            pe.dwSize = sizeof(pe);
+            if (pFirst(hSnap, &pe)) {
+                print_header("PROCESS LIST");
+                printf("%-8s %s\n", "PID", "NAME");
+                printf("%-8s %s\n", "---", "----");
+                int limit = 0;
+                do {
+                    printf("%-8d %s\n", pe.th32ProcessID, pe.szExeFile);
+                    if (++limit > 30) { printf("... (Process limit for view)\n"); break; }
+                } while(pNext(hSnap, &pe));
+            }
+            CloseHandle(hSnap);
+        }
+    }
+}
+
+// [FILE IO]
+void cmd_ls(char** args, int c) {
+    WIN32_FIND_DATA fd;
+    HANDLE hFind = FindFirstFile("*", &fd);
+    if (hFind == INVALID_HANDLE_VALUE) { printf("Empty or Error.\n"); return; }
+    
+    print_header("DIRECTORY LISTING");
+    do {
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            set_col(C_WARN);
+            printf("<DIR>  %s\n", fd.cFileName);
+        } else {
+            set_col(C_RESET);
+            printf("       %s\n", fd.cFileName);
+        }
+    } while(FindNextFile(hFind, &fd));
+    FindClose(hFind);
+    set_col(C_RESET);
+}
+
+void cmd_pwd(char** args, int c) {
+    update_cwd();
+    printf("%s\n", current_dir);
+}
+
+void cmd_cd(char** args, int c) {
+    if (c < 2) { printf("Usage: cd <path>\n"); return; }
+    if (_chdir(args[1]) == 0) {
+        update_cwd();
+    } else {
+        set_col(C_ERR); printf("Path not found.\n"); set_col(C_RESET);
+    }
+}
+
+void cmd_mkdir(char** args, int c) {
+    if (c < 2) return;
+    if (_mkdir(args[1]) == 0) printf("Directory created.\n");
+    else printf("Error creating directory.\n");
+}
+
+void cmd_rm(char** args, int c) {
+    if (c < 2) return;
+    if (DeleteFile(args[1])) printf("Deleted.\n");
+    else printf("Error deleting file.\n");
+}
+
+void cmd_rmdir(char** args, int c) {
+    if (c < 2) return;
+    if (_rmdir(args[1]) == 0) printf("Removed.\n");
+    else printf("Error (Dir must be empty).\n");
+}
+
+void cmd_mkfile(char** args, int c) {
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "w");
+    if (f) { fprintf(f, ""); fclose(f); printf("File touched.\n"); }
+}
+
+void cmd_cat(char** args, int c) {
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "r");
+    if (!f) { printf("File not found.\n"); return; }
+    char buf[1024];
+    while(fgets(buf, sizeof(buf), f)) printf("%s", buf);
+    fclose(f);
+    printf("\n");
+}
+
+void cmd_cp(char** args, int c) {
+    if (c < 3) { printf("Usage: cp <src> <dst>\n"); return; }
+    if (CopyFile(args[1], args[2], FALSE)) printf("Copied.\n");
+    else printf("Copy failed.\n");
+}
+
+void cmd_mv(char** args, int c) {
+    if (c < 3) { printf("Usage: mv <src> <dst>\n"); return; }
+    if (MoveFile(args[1], args[2])) printf("Moved.\n");
+    else printf("Move failed.\n");
+}
+
+// [UTILS]
+void cmd_clear(char** args, int c) { system("cls"); }
+void cmd_echo(char** args, int c) {
+    for(int i=1; i<c; i++) printf("%s ", args[i]);
+    printf("\n");
+}
+
+void cmd_time(char** args, int c) {
+    SYSTEMTIME st; GetLocalTime(&st);
+    printf("%02d:%02d:%02d.%03d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+}
+
+void cmd_date(char** args, int c) {
+    SYSTEMTIME st; GetLocalTime(&st);
+    printf("%02d/%02d/%04d\n", st.wDay, st.wMonth, st.wYear);
+}
+
+void cmd_color(char** args, int c) {
+    if (c < 2) { printf("Usage: color <1-15>\n"); return; }
+    int col = atoi(args[1]);
+    set_col(col);
+    printf("Color changed to %d\n", col);
+}
+
+void cmd_exit(char** args, int c) { running = 0; }
+
+void cmd_calc(char** args, int c) {
+    if (c < 4) { printf("Usage: calc 5 + 5\n"); return; }
+    double a = atof(args[1]);
+    double b = atof(args[3]);
+    char op = args[2][0];
+    double res = 0;
+    if (op == '+') res = a + b;
+    else if (op == '-') res = a - b;
+    else if (op == '*') res = a * b;
+    else if (op == '/') res = (b!=0) ? a/b : 0;
+    printf("Result: %f\n", res);
+}
+
+void cmd_rand(char** args, int c) {
+    printf("%d\n", rand());
+}
+
+void cmd_dice(char** args, int c) {
+    printf("Rolled: %d\n", (rand() % 6) + 1);
+}
+
+void cmd_run(char** args, int c) {
+    if (c < 2) return;
+    system(args[1]);
+}
+
+void cmd_beep(char** args, int c) {
+    printf("\aBEEP!\n"); // Standard bell
+}
+
+void cmd_help(char** args, int c); // Forward decl
+
+// --- DISPATCH TABLE ---
+typedef struct {
+    char* name;
+    void (*func)(char**, int);
+    char* desc;
+} Command;
+
+Command commands[] = {
+    // System
+    {"sys", cmd_sys, "System Monitor"},
+    {"proc", cmd_proc, "Process List"},
+    {"whoami", cmd_whoami, "Current User"},
+    {"hostname", cmd_hostname, "Hostname"},
+    {"os", cmd_os, "OS Version"},
+    {"uptime", cmd_uptime, "System Uptime"},
+    {"drives", cmd_drives, "Logical Drives"},
+    {"env", cmd_env, "Environment Variables"},
+    // File
+    {"ls", cmd_ls, "List Directory"},
+    {"dir", cmd_ls, "Alias for ls"},
+    {"pwd", cmd_pwd, "Print Working Directory"},
+    {"cd", cmd_cd, "Change Directory"},
+    {"mkdir", cmd_mkdir, "Make Directory"},
+    {"rmdir", cmd_rmdir, "Remove Directory"},
+    {"mkfile", cmd_mkfile, "Create File"},
+    {"rm", cmd_rm, "Remove File"},
+    {"cp", cmd_cp, "Copy File"},
+    {"mv", cmd_mv, "Move File"},
+    {"cat", cmd_cat, "Print Content"},
+    {"type", cmd_cat, "Alias for cat"},
+    // Utils
+    {"clear", cmd_clear, "Clear Screen"},
+    {"cls", cmd_clear, "Alias for clear"},
+    {"echo", cmd_echo, "Print text"},
+    {"time", cmd_time, "Show Time"},
+    {"date", cmd_date, "Show Date"},
+    {"color", cmd_color, "Set Text Color"},
+    {"calc", cmd_calc, "Basic Calculator"},
+    {"rand", cmd_rand, "Random Number"},
+    {"dice", cmd_dice, "Roll D6"},
+    {"run", cmd_run, "Run System Command"},
+    {"beep", cmd_beep, "System Beep"},
+    {"exit", cmd_exit, "Shutdown"},
+    {"shutdown", cmd_exit, "Shutdown"},
+    {"help", cmd_help, "List Commands"}
+};
+
+void cmd_help(char** args, int c) {
+    print_header("HELP MENU");
+    int count = sizeof(commands) / sizeof(Command);
+    for(int i=0; i<count; i++) {
+        set_col(C_INFO);
+        printf("%-10s", commands[i].name);
+        set_col(C_RESET);
+        printf(" : %s\n", commands[i].desc);
+    }
+}
+
+// --- MAIN LOOP ---
 int main() {
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    
-    // Init Visuals
-    system("cls");
-    print_header();
-    print_time();
-    printf("\n");
+    srand(time(NULL));
+    update_cwd();
+
+    set_col(C_OK);
+    printf("TNRM1N4L v%s initialized.\n", VERSION);
+    set_col(C_RESET);
+    printf("Type 'help' for commands.\n");
 
     char input[MAX_CMD_LEN];
     char* args[MAX_ARGS];
 
     while (running) {
-        set_color(COL_GREEN);
-        printf("\nTNRM1N4L> ");
-        set_color(COL_RESET);
+        set_col(C_OK);
+        printf("\n%s > ", current_dir);
+        set_col(C_RESET);
 
         if (!fgets(input, MAX_CMD_LEN, stdin)) break;
-        input[strcspn(input, "\n")] = 0; // Remove newline
+        input[strcspn(input, "\n")] = 0;
+        if (strlen(input) == 0) continue;
 
-        // Parse logic
-        int arg_count = 0;
+        // Tokenize
+        int arg_c = 0;
         char* token = strtok(input, " ");
-        while (token != NULL && arg_count < MAX_ARGS) {
-            args[arg_count++] = token;
+        while(token && arg_c < MAX_ARGS) {
+            args[arg_c++] = token;
             token = strtok(NULL, " ");
         }
 
-        if (arg_count == 0) continue;
+        if (arg_c == 0) continue;
 
-        if (strcmp(args[0], "shutdown") == 0 || strcmp(args[0], "exit") == 0) {
-            running = 0;
-            printf("Shutting down kernel...\n");
+        // Dispatch
+        int found = 0;
+        int cmd_count = sizeof(commands) / sizeof(Command);
+        
+        for(int i=0; i<cmd_count; i++) {
+            if (strcmp(args[0], commands[i].name) == 0) {
+                commands[i].func(args, arg_c);
+                found = 1;
+                break;
+            }
         }
-        else if (strcmp(args[0], "sys") == 0) cmd_sys();
-        else if (strcmp(args[0], "proc") == 0) cmd_proc();
-        else if (strcmp(args[0], "ls") == 0) cmd_ls();
-        else if (strcmp(args[0], "hex") == 0) cmd_hex(arg_count > 1 ? args[1] : NULL);
-        else if (strcmp(args[0], "mkfile") == 0) cmd_mkfile(arg_count > 1 ? args[1] : NULL);
-        else if (strcmp(args[0], "matrix") == 0) cmd_matrix(); 
-        else if (strcmp(args[0], "time") == 0) { print_time(); printf("\n"); }
-        else if (strcmp(args[0], "cls") == 0) system("cls"); 
-        else if (strcmp(args[0], "help") == 0) cmd_help();
-        else {
+
+        if (!found) {
+            set_col(C_ERR);
             printf("Unknown command: %s\n", args[0]);
+            set_col(C_RESET);
         }
     }
-
     return 0;
 }
