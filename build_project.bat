@@ -32,17 +32,34 @@ if %ERRORLEVEL% EQU 0 (
 echo [INFO] Using CMake: "!CMAKE_CMD!"
 echo [INFO] Using Clang: "!CC_CMD!"
 
-:: 3. Build
+:: 3. Find Ninja
+where ninja >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    set "NINJA_CMD=ninja"
+) else (
+    if exist "C:\Program Files\Ninja\ninja.exe" (
+        set "NINJA_CMD=C:\Program Files\Ninja\ninja.exe"
+    ) else (
+        if exist "%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe\ninja.exe" (
+            set "NINJA_CMD=%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe\ninja.exe"
+        ) else (
+            echo [ERROR] Ninja not found. Please install Ninja.
+            exit /b 1
+        )
+    )
+)
+
+echo [INFO] Using Ninja: "!NINJA_CMD!"
+
+:: 4. Build
 if not exist build mkdir build
 cd build
 
 echo [BUILD] Generating build files...
-:: We use "MinGW Makefiles" if available, or "NMake Makefiles", or just let CMake pick.
-:: Forcing the compiler is crucial here.
-"%CMAKE_CMD%" -G "MinGW Makefiles" -DCMAKE_C_COMPILER="!CC_CMD!" .. 
+"%CMAKE_CMD%" -G "Ninja" -DCMAKE_MAKE_PROGRAM="!NINJA_CMD!" -DCMAKE_C_COMPILER="!CC_CMD!" .. 
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARN] MinGW Generator failed. Trying default generator...
-    "%CMAKE_CMD%" -DCMAKE_C_COMPILER="!CC_CMD!" ..
+    echo [ERROR] CMake generation failed.
+    exit /b 1
 )
 
 echo [BUILD] Compiling...
@@ -50,11 +67,7 @@ echo [BUILD] Compiling...
 
 if %ERRORLEVEL% EQU 0 (
     echo [SUCCESS] Build complete.
-    if exist "Debug\tnrm1n4l.exe" (
-        echo [INFO] Run with: build\Debug\tnrm1n4l.exe
-    ) else (
-        echo [INFO] Run with: build\tnrm1n4l.exe
-    )
+    echo [INFO] Run with: build\tnrm1n4l.exe
 ) else (
     echo [ERROR] Compilation failed.
 )
