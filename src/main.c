@@ -6,6 +6,11 @@
 #include <direct.h> // For _getcwd, _chdir
 
 // --- TCC Compatibility & Manual Definitions ---
+#ifdef __TINYC__
+LPCH WINAPI GetEnvironmentStrings(void);
+BOOL WINAPI FreeEnvironmentStrings(LPCH);
+#endif
+
 #ifndef TH32CS_SNAPPROCESS
 #define TH32CS_SNAPPROCESS 0x00000002
 #endif
@@ -302,6 +307,154 @@ void cmd_beep(char** args, int c) {
 
 void cmd_help(char** args, int c); // Forward decl
 
+// --- TCC Fixes Removed (Moved to header)
+
+// [DATA & TEXT]
+void cmd_head(char** args, int c) {
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "r");
+    if (!f) { printf("File not found.\n"); return; }
+    char buf[1024];
+    int count = 0;
+    while(fgets(buf, sizeof(buf), f) && count++ < 10) printf("%s", buf);
+    fclose(f);
+}
+
+void cmd_tail(char** args, int c) {
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "r");
+    if (!f) { printf("File not found.\n"); return; }
+    // Simple implementation: count lines then print last 10
+    int total = 0;
+    char buf[1024];
+    while(fgets(buf, sizeof(buf), f)) total++;
+    rewind(f);
+    int current = 0;
+    while(fgets(buf, sizeof(buf), f)) {
+        if (current++ >= total - 10) printf("%s", buf);
+    }
+    fclose(f);
+}
+
+void cmd_wc(char** args, int c) {
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "r");
+    if (!f) return;
+    int lines=0, words=0, bytes=0;
+    char ch;
+    int in_word = 0;
+    while((ch = fgetc(f)) != EOF) {
+        bytes++;
+        if (ch == '\n') lines++;
+        if (ch == ' ' || ch == '\n' || ch == '\t') in_word = 0;
+        else if (!in_word) { in_word = 1; words++; }
+    }
+    fclose(f);
+    printf("Lines: %d Words: %d Bytes: %d\n", lines, words, bytes);
+}
+
+void cmd_grep(char** args, int c) {
+    if (c < 3) { printf("Usage: grep <term> <file>\n"); return; }
+    FILE* f = fopen(args[2], "r");
+    if (!f) return;
+    char buf[1024];
+    int line = 1;
+    while(fgets(buf, sizeof(buf), f)) {
+        if (strstr(buf, args[1])) printf("%d: %s", line, buf);
+        line++;
+    }
+    fclose(f);
+}
+
+void cmd_encrypt(char** args, int c) {
+    if (c < 2) return;
+    char* s = args[1];
+    printf("Encrypted: ");
+    while(*s) { printf("%c", (*s)+1); s++; } // ROT1
+    printf("\n");
+}
+
+void cmd_decrypt(char** args, int c) {
+    if (c < 2) return;
+    char* s = args[1];
+    printf("Decrypted: ");
+    while(*s) { printf("%c", (*s)-1); s++; } // ROT-1
+    printf("\n");
+}
+
+void cmd_bin(char** args, int c) {
+    if (c < 2) return;
+    int num = atoi(args[1]);
+    printf("Binary: ");
+    for(int i=31; i>=0; i--) {
+        printf("%d", (num >> i) & 1);
+        if (i%4==0) printf(" ");
+    }
+    printf("\n");
+}
+
+void cmd_ascii(char** args, int c) {
+    for(int i=32; i<127; i++) {
+        printf("%d: %c\t", i, i);
+        if ((i-32)%8 == 0) printf("\n");
+    }
+    printf("\n");
+}
+
+void cmd_tree(char** args, int c) {
+    printf(".\n+--- src\n|   +--- main.c\n+--- tools\n    +--- tcc\n(Simulation)\n");
+}
+
+void cmd_touch(char** args, int c) {
+    cmd_mkfile(args, c); // Same wrapper
+}
+
+void cmd_find(char** args, int c) {
+    // Simple wrapper for ls
+    cmd_ls(args, c);
+}
+
+void cmd_sort(char** args, int c) {
+    printf("Sorting not implemented in memory yet.\n");
+}
+
+void cmd_upper(char** args, int c) {
+    if (c < 2) return;
+    char* s = args[1];
+    while(*s) {
+        if (*s >= 'a' && *s <= 'z') printf("%c", *s - 32);
+        else printf("%c", *s);
+        s++;
+    }
+    printf("\n");
+}
+
+void cmd_rev(char** args, int c) {
+    if (c < 2) return;
+    for(int i=strlen(args[1])-1; i>=0; i--) printf("%c", args[1][i]);
+    printf("\n");
+}
+
+// [FUN & EXTRAS]
+void cmd_weather(char** args, int c) {
+    const char* w[] = {"Sunny", "Rainy", "Cloudy", "Cyber-Storm", "Nuclear Winter"};
+    printf("Current Weather: %s | Temp: %d C\n", w[rand()%5], rand()%40);
+}
+
+void cmd_selfdestruct(char** args, int c) {
+    set_col(C_ERR);
+    printf("INITIATING SELF DESTRUCT SEQUENCE...\n");
+    for(int i=5; i>0; i--) {
+        printf("%d...\n", i);
+        Sleep(1000);
+    }
+    printf("BOOM!\n");
+    running = 0;
+}
+
+void cmd_alias(char** args, int c) { printf("Alias stored (Session only).\n"); }
+void cmd_history(char** args, int c) { printf("1. sys\n2. help\n3. whoami\n"); } // Mock
+
 // --- DISPATCH TABLE ---
 typedef struct {
     char* name;
@@ -332,6 +485,18 @@ Command commands[] = {
     {"mv", cmd_mv, "Move File"},
     {"cat", cmd_cat, "Print Content"},
     {"type", cmd_cat, "Alias for cat"},
+    {"head", cmd_head, "First 10 lines"},
+    {"tail", cmd_tail, "Last 10 lines"},
+    {"touch", cmd_touch, "Touch file"},
+    // Data
+    {"grep", cmd_grep, "Find text in file"},
+    {"wc", cmd_wc, "Word Count"},
+    {"encrypt", cmd_encrypt, "Simple Encrypt"},
+    {"decrypt", cmd_decrypt, "Simple Decrypt"},
+    {"bin", cmd_bin, "Dec to Binary"},
+    {"ascii", cmd_ascii, "ASCII Table"},
+    {"upper", cmd_upper, "To Uppercase"},
+    {"rev", cmd_rev, "Reverse String"},
     // Utils
     {"clear", cmd_clear, "Clear Screen"},
     {"cls", cmd_clear, "Alias for clear"},
@@ -340,14 +505,20 @@ Command commands[] = {
     {"date", cmd_date, "Show Date"},
     {"color", cmd_color, "Set Text Color"},
     {"calc", cmd_calc, "Basic Calculator"},
+    {"tree", cmd_tree, "Show Tree"},
+    // Fun
+    {"weather", cmd_weather, "Sim Weather"},
     {"rand", cmd_rand, "Random Number"},
     {"dice", cmd_dice, "Roll D6"},
-    {"run", cmd_run, "Run System Command"},
     {"beep", cmd_beep, "System Beep"},
+    {"selfdestruct", cmd_selfdestruct, "Don't run this"},
+    {"run", cmd_run, "Run System Command"},
+    {"history", cmd_history, "Command History"}, 
     {"exit", cmd_exit, "Shutdown"},
     {"shutdown", cmd_exit, "Shutdown"},
     {"help", cmd_help, "List Commands"}
 };
+
 
 void cmd_help(char** args, int c) {
     print_header("HELP MENU");
