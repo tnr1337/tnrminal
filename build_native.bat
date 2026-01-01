@@ -1,20 +1,24 @@
 @echo off
 setlocal
 set "PROJECT_ROOT=%cd%"
-set "ZIG_DIR=%PROJECT_ROOT%\tools\zig"
+set "TCC_EXE=%PROJECT_ROOT%\tools\tcc\tcc.exe"
 
-echo [BUILD] Compiling with Zig CC (Local)...
+echo [BUILD] Compiling with TCC...
+echo Path: "%TCC_EXE%"
 
-if not exist "%ZIG_DIR%\zig.exe" (
-    echo [ERROR] Zig not found at %ZIG_DIR%
-    exit /b 1
-)
+if exist "%TCC_EXE%" goto found
 
-"%ZIG_DIR%\zig.exe" cc "%PROJECT_ROOT%\src\main.c" -o "%PROJECT_ROOT%\tnrm1n4l.exe" -lkernel32 -luser32 -g
+echo [ERROR] TCC executable not found at expected path.
+echo [INFO] contents of tools folder:
+dir "%PROJECT_ROOT%\tools"
+exit /b 1
+
+:found
+"%TCC_EXE%" "%PROJECT_ROOT%\src\main.c" -o "%PROJECT_ROOT%\tnrm1n4l.exe" -luser32 -lkernel32
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Build Failed.
+    echo [ERROR] Compilation Failed.
     exit /b 1
 )
 
-echo [SUCCESS] TNRM1N4L Kernel Built.
-echo [INFO] Run: tnrm1n4l.exe
+echo [SUCCESS] TNRM1N4L Kernel Built Successfully.
+echo [INFO] Run command: tnrm1n4l.exe
