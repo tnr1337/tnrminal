@@ -51,12 +51,25 @@ if %ERRORLEVEL% EQU 0 (
 
 echo [INFO] Using Ninja: "!NINJA_CMD!"
 
-:: 4. Build
+:: 4. Find llvm-rc (Resource Compiler)
+if exist "C:\Program Files\LLVM\bin\llvm-rc.exe" (
+    set "RC_CMD=C:\Program Files\LLVM\bin\llvm-rc.exe"
+) else (
+    echo [ERROR] llvm-rc not found.
+    exit /b 1
+)
+
+:: Normalize paths for CMake (Replace \ with /)
+set "NINJA_CMD=!NINJA_CMD:\=/!"
+set "CC_CMD=!CC_CMD:\=/!"
+set "RC_CMD=!RC_CMD:\=/!"
+
+:: 5. Build
 if not exist build mkdir build
 cd build
 
 echo [BUILD] Generating build files...
-"%CMAKE_CMD%" -G "Ninja" -DCMAKE_MAKE_PROGRAM="!NINJA_CMD!" -DCMAKE_C_COMPILER="!CC_CMD!" .. 
+"%CMAKE_CMD%" -G "Ninja" -DCMAKE_MAKE_PROGRAM="!NINJA_CMD!" -DCMAKE_C_COMPILER="!CC_CMD!" -DCMAKE_RC_COMPILER="!RC_CMD!" .. 
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] CMake generation failed.
     exit /b 1
