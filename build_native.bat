@@ -1,24 +1,9 @@
 @echo off
-setlocal
-set "PROJECT_ROOT=%cd%"
-set "TCC_EXE=%PROJECT_ROOT%\tools\tcc\tcc.exe"
-
-echo [BUILD] Compiling with TCC...
-echo Path: "%TCC_EXE%"
-
-if exist "%TCC_EXE%" goto found
-
-echo [ERROR] TCC executable not found at expected path.
-echo [INFO] contents of tools folder:
-dir "%PROJECT_ROOT%\tools"
-exit /b 1
-
-:found
-"%TCC_EXE%" "%PROJECT_ROOT%\src\main.c" -o "%PROJECT_ROOT%\tnrm1n4l.exe" -luser32 -lkernel32 -ladvapi32 -lshell32
+if not exist build mkdir build
+gcc src/main.c src/utils.c src/cmd_sys.c src/cmd_file.c src/cmd_data.c src/cmd_net.c src/cmd_fun.c src/cmd_extra.c -o build/tnrm1n4l.exe
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Compilation Failed.
-    exit /b 1
+    echo Build failed.
+    exit /b %ERRORLEVEL%
 )
-
-echo [SUCCESS] TNRM1N4L Kernel Built Successfully.
-echo [INFO] Run command: tnrm1n4l.exe
+echo Build success.
+copy /Y build\tnrm1n4l.exe .
