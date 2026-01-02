@@ -1,14 +1,33 @@
 #include "tnr.h"
-#include <tlhelp32.h>
+// #include <tlhelp32.h> // Removed for TCC compatibility
 
-// --- TCC / Manual Compat for Process ---
-#ifdef __TINYC__
+// --- TCC Compatibility & Manual Definitions ---
 #ifndef TH32CS_SNAPPROCESS
 #define TH32CS_SNAPPROCESS 0x00000002
 #endif
+
+// TCC Helper
+#ifdef __TINYC__
+LPCH WINAPI GetEnvironmentStrings(void);
+BOOL WINAPI FreeEnvironmentStrings(LPCH);
 #endif
 
-// Helper for memory
+typedef struct tagPROCESSENTRY32 {
+    DWORD     dwSize;
+    DWORD     cntUsage;
+    DWORD     th32ProcessID;
+    ULONG_PTR th32DefaultHeapID;
+    DWORD     th32ModuleID;
+    DWORD     cntThreads;
+    DWORD     th32ParentProcessID;
+    LONG      pcPriClassBase;
+    DWORD     dwFlags;
+    CHAR      szExeFile[MAX_PATH];
+} PROCESSENTRY32;
+
+typedef HANDLE (WINAPI *PtrCreateToolhelp32Snapshot)(DWORD, DWORD);
+typedef BOOL (WINAPI *PtrProcess32First)(HANDLE, PROCESSENTRY32*);
+typedef BOOL (WINAPI *PtrProcess32Next)(HANDLE, PROCESSENTRY32*);
 typedef BOOL (WINAPI *PtrGlobalMemoryStatusEx)(LPMEMORYSTATUSEX);
 
 void cmd_sys(char** args, int c) {
@@ -70,7 +89,11 @@ void cmd_drives(char** args, int c) {
 }
 
 void cmd_env(char** args, int c) {
+#ifdef __TINYC__
+    LPTSTR lpvEnv = (LPTSTR)GetEnvironmentStrings();
+#else
     LPTCH lpvEnv = GetEnvironmentStrings(); 
+#endif
     if (lpvEnv == NULL) return;
     LPTSTR lpszVariable = (LPTSTR) lpvEnv; 
     while (*lpszVariable) { 
@@ -81,27 +104,36 @@ void cmd_env(char** args, int c) {
 }
 
 void cmd_proc(char** args, int c) {
-    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnap != INVALID_HANDLE_VALUE) {
-        PROCESSENTRY32 pe;
-        pe.dwSize = sizeof(pe);
-        if (Process32First(hSnap, &pe)) {
-            print_header("PROCESS LIST");
-            printf("%-8s %s\n", "PID", "NAME");
-            printf("%-8s %s\n", "---", "----");
-            int limit = 0;
-            do {
-                printf("%-8lu %s\n", pe.th32ProcessID, pe.szExeFile);
-                if (++limit > 40) { printf("... (Limit reached)\n"); break; }
-            } while(Process32Next(hSnap, &pe));
+    HMODULE hKernel = GetModuleHandle("kernel32.dll");
+    PtrCreateToolhelp32Snapshot pSnap = (PtrCreateToolhelp32Snapshot)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
+    PtrProcess32First pFirst = (PtrProcess32First)GetProcAddress(hKernel, "Process32First");
+    PtrProcess32Next pNext = (PtrProcess32Next)GetProcAddress(hKernel, "Process32Next");
+
+    if (pSnap && pFirst && pNext) {
+        HANDLE hSnap = pSnap(TH32CS_SNAPPROCESS, 0);
+        if (hSnap != INVALID_HANDLE_VALUE) {
+            PROCESSENTRY32 pe;
+            pe.dwSize = sizeof(pe);
+            if (pFirst(hSnap, &pe)) {
+                print_header("PROCESS LIST");
+                printf("%-8s %s\n", "PID", "NAME");
+                printf("%-8s %s\n", "---", "----");
+                int limit = 0;
+                do {
+                    printf("%-8lu %s\n", pe.th32ProcessID, pe.szExeFile);
+                    if (++limit > 40) { printf("... (Limit reached)\n"); break; }
+                } while(pNext(hSnap, &pe));
+            }
+            CloseHandle(hSnap);
         }
-        CloseHandle(hSnap);
+    } else {
+        printf("Process listing not supported on this kernel (Missing exports).\n");
     }
 }
 
 // [NEW] Enhanced Process List
 void cmd_ps(char** args, int c) {
-    cmd_proc(args, c); // Wrapper for now, can be enhanced later with memory usage if needed
+    cmd_proc(args, c); 
 }
 
 // [NEW] Fetch ASCII Art
@@ -113,9 +145,11 @@ void cmd_fetch(char** args, int c) {
     len = 256;
     GetUserName(user, &len);
 
+    HMODULE hKernel = GetModuleHandle("kernel32.dll");
+    PtrGlobalMemoryStatusEx pGlobalMemoryStatusEx = (PtrGlobalMemoryStatusEx)GetProcAddress(hKernel, "GlobalMemoryStatusEx");
     MEMORYSTATUSEX mem;
     mem.dwLength = sizeof(mem);
-    GlobalMemoryStatusEx(&mem);
+    if(pGlobalMemoryStatusEx) pGlobalMemoryStatusEx(&mem);
 
     set_col(C_HACK); // Special Green
     printf("\n");
@@ -123,7 +157,10 @@ void cmd_fetch(char** args, int c) {
     printf("   |  |>_  |    ----------------------\n");
     printf("   |       |    OS: Windows Native\n");
     printf("   |       |    Sh: TNRM1N4L v%s\n", VERSION);
-    printf("   |_______|    RAM: %llu / %llu MB\n", (mem.ullTotalPhys - mem.ullAvailPhys)/1024/1024, mem.ullTotalPhys/1024/1024);
+    if(pGlobalMemoryStatusEx) 
+        printf("   |_______|    RAM: %llu / %llu MB\n", (mem.ullTotalPhys - mem.ullAvailPhys)/1024/1024, mem.ullTotalPhys/1024/1024);
+    else
+        printf("   |_______|    RAM: Unknown\n");
     printf("                Uptime: %ld min\n", GetTickCount()/60000);
     printf("\n");
     set_col(C_RESET);
