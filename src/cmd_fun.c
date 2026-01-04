@@ -43,7 +43,7 @@ void cmd_snake(char** args, int c) {
     char key = 'd';
     
     while(key != 'x') {
-    while(key != 'x') {
+
         gotoxy(0, 0); // No clear, just overwrite
         printf("SNAKE (WASD to move, X to quit)\n");
         printf("Score: %d\n", score);
