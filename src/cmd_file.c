@@ -158,6 +158,10 @@ void cmd_edit(char** args, int c) {
             line_count++;
             dirty = 1;
         } else if (strncmp(input, "del", 3) == 0) {
+             if (strlen(input) <= 4) {
+                 printf("Usage: del <line_number>\n");
+                 continue;
+             }
             int ln = atoi(input + 4);
             if (ln > 0 && ln <= line_count) {
                 // Shift down
@@ -167,6 +171,8 @@ void cmd_edit(char** args, int c) {
                 line_count--;
                 dirty = 1;
                 printf("Line deleted.\n");
+            } else {
+                printf("Invalid line number.\n");
             }
         } else if (strcmp(input, "save") == 0) {
             f = fopen(filename, "w");
@@ -225,30 +231,50 @@ void cmd_diff(char** args, int c) {
     
     char b1[256], b2[256];
     int diffs = 0;
-    while(fgets(b1, 256, f1) && fgets(b2, 256, f2)) {
-        if (strcmp(b1, b2) != 0) {
-            printf("< %s> %s", b1, b2);
+    int line = 1;
+    
+    char* p1 = fgets(b1, 256, f1);
+    char* p2 = fgets(b2, 256, f2);
+
+    while(p1 || p2) {
+        // Remove newlines for cleaner output display if desired, 
+        // but keeping them for now to match original style roughly.
+        if (p1) b1[strcspn(b1, "\n")] = 0;
+        if (p2) b2[strcspn(b2, "\n")] = 0;
+
+        if ((p1 && !p2) || (!p1 && p2) || (p1 && p2 && strcmp(b1, b2) != 0)) {
+            printf("Line %d:\n", line);
+            printf("< %s\n", p1 ? b1 : "(EOF)");
+            printf("> %s\n", p2 ? b2 : "(EOF)");
             diffs++;
         }
+        
+        p1 = fgets(b1, 256, f1);
+        p2 = fgets(b2, 256, f2);
+        line++;
     }
-    if (diffs == 0) printf("Files are identical (first lines checked).\n");
+
+    if (diffs == 0) printf("Files are identical.\n");
     fclose(f1); fclose(f2);
 }
 
 // [NEW] DU
 void cmd_du(char** args, int c) {
     // List file sizes in current dir
-     WIN32_FIND_DATA fd;
+    WIN32_FIND_DATA fd;
     HANDLE hFind = FindFirstFile("*", &fd);
-    long total = 0;
+    unsigned long long total = 0;
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
             if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-                total += (fd.nFileSizeLow);
-                printf("%-20s %lu bytes\n", fd.cFileName, fd.nFileSizeLow);
+                ULARGE_INTEGER filesize;
+                filesize.LowPart = fd.nFileSizeLow;
+                filesize.HighPart = fd.nFileSizeHigh;
+                total += filesize.QuadPart;
+                printf("%-20s %llu bytes\n", fd.cFileName, filesize.QuadPart);
             }
         } while(FindNextFile(hFind, &fd));
         FindClose(hFind);
-        printf("Total: %ld bytes\n", total);
+        printf("Total: %llu bytes\n", total);
     }
 }
