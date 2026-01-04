@@ -34,6 +34,7 @@ void cmd_matrix(char** args, int c) {
 // [NEW] Snake Game (Very Basic)
 void cmd_snake(char** args, int c) {
     system("cls");
+    hide_cursor();
     printf("SNAKE (WASD to move, X to quit)\n");
     
     int x=10, y=10;
@@ -42,7 +43,9 @@ void cmd_snake(char** args, int c) {
     char key = 'd';
     
     while(key != 'x') {
-        system("cls");
+    while(key != 'x') {
+        gotoxy(0, 0); // No clear, just overwrite
+        printf("SNAKE (WASD to move, X to quit)\n");
         printf("Score: %d\n", score);
         
         // Draw Field (20x20)
@@ -79,6 +82,7 @@ void cmd_snake(char** args, int c) {
         tnr_sleep(100);
     }
     printf("Final Score: %d\n", score);
+    show_cursor();
 }
 
 void cmd_weather(char** args, int c) {

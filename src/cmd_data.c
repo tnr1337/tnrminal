@@ -39,6 +39,13 @@ void cmd_sort(char** args, int c) {
     char lines[100][256];
     int count = 0;
     while(fgets(lines[count], 256, f) && count < 100) count++;
+    
+    // Check if more lines exist
+    if (count == 100 && fgetc(f) != EOF) {
+        set_col(C_WARN);
+        printf("Warning: File too large. Sorting first 100 lines only.\n");
+        set_col(C_RESET);
+    }
     fclose(f);
     
     for(int i=0; i<count-1; i++) {

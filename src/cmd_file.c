@@ -115,7 +115,10 @@ void cmd_tail(char** args, int c) {
 }
 
 void cmd_touch(char** args, int c) {
-    cmd_mkfile(args, c); 
+    if (c < 2) return;
+    FILE* f = fopen(args[1], "a"); // Append mode touches without truncate
+    if (f) { fclose(f); printf("File touched.\n"); }
+    else { printf("Error accessing file.\n"); }
 }
 
 // [NEW] Simple Line Editor
