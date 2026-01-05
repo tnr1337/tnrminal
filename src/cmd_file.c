@@ -38,45 +38,46 @@ void cmd_cd(char** args, int c) {
 }
 
 void cmd_mkdir(char** args, int c) {
-    if (c < 2) return;
-    if (_mkdir(args[1]) == 0) printf("Directory created.\n");
-    else printf("Error creating directory.\n");
+    if (c < 2) { print_usage("mkdir", "<directory>"); return; }
+    if (_mkdir(args[1]) == 0) print_success("Directory created.");
+    else print_error("Failed to create directory.");
 }
 
 void cmd_rmdir(char** args, int c) {
-    if (c < 2) return;
-    if (_rmdir(args[1]) == 0) printf("Removed.\n");
-    else printf("Error.\n");
+    if (c < 2) { print_usage("rmdir", "<directory>"); return; }
+    if (_rmdir(args[1]) == 0) print_success("Directory removed.");
+    else print_error("Failed to remove directory (not empty or not found).");
 }
 
 void cmd_mkfile(char** args, int c) {
-    if (c < 2) return;
+    if (c < 2) { print_usage("mkfile", "<filename>"); return; }
     FILE* f = fopen(args[1], "w");
-    if (f) { fprintf(f, ""); fclose(f); printf("File touched.\n"); }
+    if (f) { fclose(f); print_success("File created."); }
+    else print_error("Failed to create file.");
 }
 
 void cmd_rm(char** args, int c) {
-    if (c < 2) return;
-    if (DeleteFile(args[1])) printf("Deleted.\n");
-    else printf("Error deleting file.\n");
+    if (c < 2) { print_usage("rm", "<file>"); return; }
+    if (DeleteFile(args[1])) print_success("File deleted.");
+    else print_error("Failed to delete file.");
 }
 
 void cmd_cp(char** args, int c) {
-    if (c < 3) return;
-    if (CopyFile(args[1], args[2], FALSE)) printf("Copied.\n");
-    else printf("Copy failed.\n");
+    if (c < 3) { print_usage("cp", "<source> <destination>"); return; }
+    if (CopyFile(args[1], args[2], FALSE)) print_success("File copied.");
+    else print_error("Copy failed.");
 }
 
 void cmd_mv(char** args, int c) {
-    if (c < 3) return;
-    if (MoveFile(args[1], args[2])) printf("Moved.\n");
-    else printf("Move failed.\n");
+    if (c < 3) { print_usage("mv", "<source> <destination>"); return; }
+    if (MoveFile(args[1], args[2])) print_success("File moved.");
+    else print_error("Move failed.");
 }
 
 void cmd_cat(char** args, int c) {
-    if (c < 2) return;
+    if (c < 2) { print_usage("cat", "<file>"); return; }
     FILE* f = fopen(args[1], "r");
-    if (!f) { printf("File not found.\n"); return; }
+    if (!f) { print_error("File not found."); return; }
     char buf[1024];
     while(fgets(buf, sizeof(buf), f)) printf("%s", buf);
     fclose(f);
@@ -84,32 +85,35 @@ void cmd_cat(char** args, int c) {
 }
 
 void cmd_head(char** args, int c) {
-    if (c < 2) return;
+    if (c < 2) { print_usage("head", "<file>"); return; }
     FILE* f = fopen(args[1], "r");
-    if (!f) { printf("File not found.\n"); return; }
+    if (!f) { print_error("File not found."); return; }
     char buf[1024];
     int count = 0;
-    while(fgets(buf, sizeof(buf), f) && count++ < 10) printf("%s", buf);
+    while(fgets(buf, sizeof(buf), f) && count++ < HEAD_TAIL_LINES) printf("%s", buf);
     fclose(f);
 }
 
 void cmd_tail(char** args, int c) {
-    if (c < 2) return;
+    if (c < 2) { print_usage("tail", "<file>"); return; }
     FILE* f = fopen(args[1], "r");
-    if (!f) return;
-    // Count lines
+    if (!f) { print_error("File not found."); return; }
+    
+    // Count lines properly
     int lines = 0;
-    char ch;
-    while(!feof(f)) { if(fgetc(f) == '\n') lines++; }
+    int ch;
+    while((ch = fgetc(f)) != EOF) {
+        if (ch == '\n') lines++;
+    }
     rewind(f);
     
+    int start = (lines > HEAD_TAIL_LINES) ? (lines - HEAD_TAIL_LINES) : 0;
     int current = 0;
-    int start = lines - 10;
-    if (start < 0) start = 0;
     
     char buf[1024];
     while(fgets(buf, sizeof(buf), f)) {
-        if (current++ >= start) printf("%s", buf);
+        if (current >= start) printf("%s", buf);
+        current++;
     }
     fclose(f);
 }

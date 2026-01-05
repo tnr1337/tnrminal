@@ -9,11 +9,29 @@
 #include <direct.h> // _getcwd, _chdir
 #include <conio.h> // _getch
 
-// --- Constants ---
-#define MAX_CMD_LEN 512
-#define MAX_ARGS 32
-#define VERSION "2.1 (Ultra)"
+// --- Version & Identity ---
+#define VERSION "3.0 (Pro)"
 #define HOST_NAME "TNRM1N4L"
+
+// --- Buffer Sizes ---
+#define MAX_CMD_LEN 1024
+#define MAX_ARGS 64
+#define MAX_LINE_LEN 256
+#define MAX_LINES_BUFFER 100
+#define MAX_HISTORY 50
+#define MAX_USERNAME 256
+#define MAX_HOSTNAME 256
+
+// --- Display Constants ---
+#define COLUMNS_HELP 3
+#define COLUMNS_LS 3
+#define HEAD_TAIL_LINES 10
+#define ASCII_START 32
+#define ASCII_END 127
+#define ASCII_COLS 8
+#define HEX_BYTES_PER_LINE 16
+#define HEX_TRUNCATE_OFFSET 512
+#define PROC_DISPLAY_LIMIT 40
 
 // --- Colors ---
 #define C_RESET 7
@@ -23,6 +41,7 @@
 #define C_WARN  14 // Yellow
 #define C_HEAD  13 // Magenta
 #define C_HACK  2  // Dark Green (Matrix)
+#define C_TITLE 9  // Blue
 
 // --- Structs ---
 typedef struct {
@@ -35,6 +54,9 @@ typedef struct {
 extern HANDLE hConsole;
 extern int running;
 extern char current_dir[MAX_PATH];
+extern char cmd_history[MAX_HISTORY][MAX_CMD_LEN];
+extern int history_count;
+extern int history_index;
 
 // --- Prototypes ---
 
@@ -42,10 +64,15 @@ extern char current_dir[MAX_PATH];
 void set_col(int c);
 void update_cwd();
 void print_header(const char* title);
+void print_error(const char* msg);
+void print_success(const char* msg);
+void print_usage(const char* cmd, const char* usage);
 void tnr_sleep(int ms);
 void gotoxy(int x, int y);
 void hide_cursor();
 void show_cursor();
+void add_to_history(const char* cmd);
+int safe_strcpy(char* dest, const char* src, size_t dest_size);
 
 // System
 void cmd_sys(char** args, int c);

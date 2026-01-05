@@ -95,14 +95,43 @@ Command commands[] = {
 
 void cmd_help(char** args, int c) {
     print_header("HELP MENU");
-    int count = sizeof(commands) / sizeof(Command);
-    int cols = 3;
-    for(int i=0; i<count; i++) {
-        set_col(C_INFO);
-        printf("%-15s", commands[i].name);
-        if ((i+1) % cols == 0) printf("\n");
-    }
-    printf("\n");
+    
+    set_col(C_INFO);
+    printf("\n  SYSTEM COMMANDS:\n");
+    set_col(C_RESET);
+    printf("    sys, proc, ps, fetch, whoami, hostname, os, uptime, drives, env\n");
+    printf("    time, date, shutdown, reboot, lock\n");
+    
+    set_col(C_INFO);
+    printf("\n  FILE COMMANDS:\n");
+    set_col(C_RESET);
+    printf("    ls, dir, pwd, cd, mkdir, rmdir, mkfile, touch, rm, cp, mv\n");
+    printf("    cat, head, tail, edit, find, tree, diff, du\n");
+    
+    set_col(C_INFO);
+    printf("\n  DATA COMMANDS:\n");
+    set_col(C_RESET);
+    printf("    grep, wc, sort, uniq, upper, rev, bin, ascii, hex\n");
+    printf("    base64, encrypt, decrypt\n");
+    
+    set_col(C_INFO);
+    printf("\n  NETWORK COMMANDS:\n");
+    set_col(C_RESET);
+    printf("    ping, ip, curl\n");
+    
+    set_col(C_INFO);
+    printf("\n  FUN & GAMES:\n");
+    set_col(C_RESET);
+    printf("    matrix, snake, weather, joke, fortune, rand, dice, beep\n");
+    
+    set_col(C_INFO);
+    printf("\n  UTILITIES:\n");
+    set_col(C_RESET);
+    printf("    calc, todo, calendar, pomodoro, journal, script, history\n");
+    printf("    clear, cls, echo, color, theme, man, run, exit\n");
+    
+    set_col(C_WARN);
+    printf("\n  TIP: Use 'man <command>' for detailed help on any command.\n");
     set_col(C_RESET);
 }
 
@@ -127,15 +156,28 @@ void dispatch_command(char** args, int arg_c) {
 
 int main() {
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     update_cwd();
 
-    set_col(C_OK);
-    printf("TNRM1N4L v%s initialized.\n", VERSION);
+    // Startup Banner
+    set_col(C_HACK);
+    printf("\n");
+    printf("  ████████╗███╗   ██╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗\n");
+    printf("  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║\n");
+    printf("     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║\n");
+    printf("     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║\n");
+    printf("     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗\n");
+    printf("     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝\n");
     set_col(C_RESET);
-    printf("Type 'help' for commands.\n");
+    printf("\n");
+    set_col(C_OK);
+    printf("  TNRM1N4L v%s | Custom Terminal Emulator\n", VERSION);
+    set_col(C_INFO);
+    printf("  Type 'help' for commands, 'man <cmd>' for detailed help.\n");
+    set_col(C_RESET);
 
     char input[MAX_CMD_LEN];
+    char input_copy[MAX_CMD_LEN];  // Keep original for history
     char* args[MAX_ARGS];
 
     while (running) {
@@ -147,6 +189,9 @@ int main() {
         input[strcspn(input, "\n")] = 0;
         if (strlen(input) == 0) continue;
 
+        // Save original input for history
+        safe_strcpy(input_copy, input, MAX_CMD_LEN);
+
         // Tokenize
         int arg_c = 0;
         char* token = strtok(input, " ");
@@ -156,7 +201,15 @@ int main() {
         }
 
         if (arg_c == 0) continue;
+        
+        // Add to history before executing
+        add_to_history(input_copy);
+        
         dispatch_command(args, arg_c);
     }
+    
+    set_col(C_OK);
+    printf("\nGoodbye! Terminal closed.\n");
+    set_col(C_RESET);
     return 0;
 }

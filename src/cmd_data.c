@@ -14,11 +14,11 @@ void cmd_grep(char** args, int c) {
 }
 
 void cmd_wc(char** args, int c) {
-    if (c < 2) return;
+    if (c < 2) { print_usage("wc", "<file>"); return; }
     FILE* f = fopen(args[1], "r");
-    if (!f) return;
+    if (!f) { print_error("File not found."); return; }
     int lines=0, words=0, bytes=0;
-    char ch;
+    int ch;  // Use int for proper EOF detection
     int in_word = 0;
     while((ch = fgetc(f)) != EOF) {
         bytes++;
@@ -27,7 +27,7 @@ void cmd_wc(char** args, int c) {
         else if (!in_word) { in_word = 1; words++; }
     }
     fclose(f);
-    printf("Lines: %d Words: %d Bytes: %d\n", lines, words, bytes);
+    printf("Lines: %d  Words: %d  Bytes: %d\n", lines, words, bytes);
 }
 
 // [NEW] Simple Bubble Sort (In-Memory, Max 100 lines)
@@ -108,11 +108,20 @@ void cmd_bin(char** args, int c) {
 }
 
 void cmd_ascii(char** args, int c) {
-    for(int i=32; i<127; i++) {
-        printf("%d: %c\t", i, i);
-        if ((i-32)%8 == 0) printf("\n");
+    print_header("ASCII TABLE");
+    printf("DEC  HEX  CHAR   |  DEC  HEX  CHAR   |  DEC  HEX  CHAR\n");
+    printf("------------------------------------------------------------\n");
+    int cols = 0;
+    for(int i = ASCII_START; i < ASCII_END; i++) {
+        printf("%3d  %02X   %c     ", i, i, i);
+        cols++;
+        if (cols % 3 == 0) {
+            printf("\n");
+        } else {
+            printf("| ");
+        }
     }
-    printf("\n");
+    if (cols % 3 != 0) printf("\n");
 }
 
 // [NEW] Hex Dump
