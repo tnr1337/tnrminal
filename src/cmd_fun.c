@@ -86,26 +86,51 @@ void cmd_snake(char** args, int c) {
 }
 
 void cmd_weather(char** args, int c) {
-    const char* w[] = {"Sunny", "Rainy", "Cloudy", "Cyber-Storm", "Nuclear Winter", "Acid Rain"};
-    printf("Current Weather: %s | Temp: %d C\n", w[rand()%6], rand()%45);
+    const char* w[] = {"Sunny", "Rainy", "Cloudy", "Cyber-Storm", "Nuclear Winter", "Acid Rain", "Partly Cloudy", "Thunderstorms"};
+    const char* icons[] = {"\xF0\x9F\x8C\x9E", "\xF0\x9F\x8C\xA7", "\xE2\x98\x81", "\xE2\x9A\xA1", "\xE2\x9D\x84", "\xE2\x98\xA2", "\xF0\x9F\x8C\xA4", "\xE2\x9B\x88"};
+    int idx = rand() % 8;
+    print_header("WEATHER");
+    printf("Condition: %s\n", w[idx]);
+    printf("Temperature: %d C (%d F)\n", rand() % 45 - 5, (rand() % 45 - 5) * 9 / 5 + 32);
+    printf("Humidity: %d%%\n", rand() % 100);
+    printf("Wind: %d km/h\n", rand() % 50);
 }
 
 void cmd_joke(char** args, int c) {
     const char* jokes[] = {
         "There are 10 types of people: those who understand binary, and those who don't.",
         "Why do Java programmers wear glasses? Because they don't C#.",
-        "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'"
+        "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'",
+        "Why did the programmer quit his job? Because he didn't get arrays (a raise).",
+        "A programmer puts two glasses on his bedside table before going to sleep. A full one, in case he gets thirsty, and an empty one, in case he doesn't.",
+        "There are only 3 hard things in programming: naming things, cache invalidation, and off-by-one errors.",
+        "!false - It's funny because it's true.",
+        "A SQL statement walks into a bar and sees two tables. It walks up to them and asks 'Can I join you?'",
+        "Why do programmers prefer dark mode? Because light attracts bugs.",
+        "What's the object-oriented way to become wealthy? Inheritance."
     };
-    printf("%s\n", jokes[rand()%3]);
+    set_col(C_INFO);
+    printf("%s\n", jokes[rand() % 10]);
+    set_col(C_RESET);
 }
 
 void cmd_fortune(char** args, int c) {
     const char* quotes[] = {
         "The computer was born to solve problems that did not exist before.",
         "It's not a bug, it's a feature.",
-        "Talk is cheap. Show me the code."
+        "Talk is cheap. Show me the code. - Linus Torvalds",
+        "First, solve the problem. Then, write the code. - John Johnson",
+        "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. - Martin Fowler",
+        "Code is like humor. When you have to explain it, it's bad.",
+        "Simplicity is the soul of efficiency. - Austin Freeman",
+        "The best error message is the one that never shows up. - Thomas Fuchs",
+        "Programming isn't about what you know; it's about what you can figure out. - Chris Pine",
+        "The only way to learn a new programming language is by writing programs in it. - Dennis Ritchie"
     };
-    printf("Fortune: %s\n", quotes[rand()%3]);
+    print_header("FORTUNE");
+    set_col(C_WARN);
+    printf("\"%s\"\n", quotes[rand() % 10]);
+    set_col(C_RESET);
 }
 
 void cmd_selfdestruct(char** args, int c) {

@@ -47,20 +47,26 @@ void cmd_sys(char** args, int c) {
 }
 
 void cmd_whoami(char** args, int c) {
-    char user[256];
-    DWORD len = 256;
+    char user[MAX_USERNAME];
+    DWORD len = MAX_USERNAME;
     if (GetUserName(user, &len)) {
+        set_col(C_OK);
         printf("User: %s\n", user);
+        set_col(C_RESET);
     } else {
-        printf("Error getting username.\n");
+        print_error("Could not retrieve username.");
     }
 }
 
 void cmd_hostname(char** args, int c) {
-    char host[256];
-    DWORD len = 256;
+    char host[MAX_HOSTNAME];
+    DWORD len = MAX_HOSTNAME;
     if (GetComputerName(host, &len)) {
+        set_col(C_OK);
         printf("Hostname: %s\n", host);
+        set_col(C_RESET);
+    } else {
+        print_error("Could not retrieve hostname.");
     }
 }
 
@@ -116,24 +122,79 @@ void cmd_proc(char** args, int c) {
             pe.dwSize = sizeof(pe);
             if (pFirst(hSnap, &pe)) {
                 print_header("PROCESS LIST");
-                printf("%-8s %s\n", "PID", "NAME");
-                printf("%-8s %s\n", "---", "----");
-                int limit = 0;
+                set_col(C_INFO);
+                printf("%-8s %-6s %s\n", "PID", "THR", "NAME");
+                printf("%-8s %-6s %s\n", "---", "---", "----");
+                set_col(C_RESET);
+                int count = 0;
                 do {
-                    printf("%-8lu %s\n", pe.th32ProcessID, pe.szExeFile);
-                    if (++limit > 40) { printf("... (Limit reached)\n"); break; }
+                    printf("%-8lu %-6lu %s\n", pe.th32ProcessID, pe.cntThreads, pe.szExeFile);
+                    if (++count > PROC_DISPLAY_LIMIT) {
+                        set_col(C_WARN);
+                        printf("... (%d limit reached, use 'ps -a' for more)\n", PROC_DISPLAY_LIMIT);
+                        set_col(C_RESET);
+                        break;
+                    }
                 } while(pNext(hSnap, &pe));
+                set_col(C_INFO);
+                printf("\nTotal: %d processes shown\n", count);
+                set_col(C_RESET);
             }
             CloseHandle(hSnap);
         }
     } else {
-        printf("Process listing not supported on this kernel (Missing exports).\n");
+        print_error("Process listing not supported on this kernel.");
     }
 }
 
 // [NEW] Enhanced Process List
 void cmd_ps(char** args, int c) {
-    cmd_proc(args, c); 
+    // Check for -a flag for all processes
+    int show_all = 0;
+    if (c >= 2 && strcmp(args[1], "-a") == 0) {
+        show_all = 1;
+    }
+    
+    HMODULE hKernel = GetModuleHandle("kernel32.dll");
+    PtrCreateToolhelp32Snapshot pSnap = (PtrCreateToolhelp32Snapshot)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
+    PtrProcess32First pFirst = (PtrProcess32First)GetProcAddress(hKernel, "Process32First");
+    PtrProcess32Next pNext = (PtrProcess32Next)GetProcAddress(hKernel, "Process32Next");
+
+    if (pSnap && pFirst && pNext) {
+        HANDLE hSnap = pSnap(TH32CS_SNAPPROCESS, 0);
+        if (hSnap != INVALID_HANDLE_VALUE) {
+            PROCESSENTRY32 pe;
+            pe.dwSize = sizeof(pe);
+            if (pFirst(hSnap, &pe)) {
+                print_header("PROCESSES");
+                set_col(C_INFO);
+                printf("%-8s %-8s %-6s %s\n", "PID", "PPID", "THR", "NAME");
+                printf("%-8s %-8s %-6s %s\n", "---", "----", "---", "----");
+                set_col(C_RESET);
+                int count = 0;
+                do {
+                    printf("%-8lu %-8lu %-6lu %s\n", 
+                           pe.th32ProcessID, 
+                           pe.th32ParentProcessID,
+                           pe.cntThreads, 
+                           pe.szExeFile);
+                    count++;
+                    if (!show_all && count > PROC_DISPLAY_LIMIT) {
+                        set_col(C_WARN);
+                        printf("... (use 'ps -a' for all)\n");
+                        set_col(C_RESET);
+                        break;
+                    }
+                } while(pNext(hSnap, &pe));
+                set_col(C_INFO);
+                printf("\nTotal: %d processes\n", count);
+                set_col(C_RESET);
+            }
+            CloseHandle(hSnap);
+        }
+    } else {
+        print_error("Process listing not supported.");
+    }
 }
 
 // [NEW] Fetch ASCII Art

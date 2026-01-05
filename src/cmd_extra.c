@@ -52,13 +52,14 @@ static ManPage man_pages[] = {
     {"sort", "<file>", "Sort lines in a file alphabetically."},
     {"uniq", "<file>", "Filter out consecutive duplicate lines."},
     {"upper", "<text>", "Convert text to uppercase."},
+    {"lower", "<text>", "Convert text to lowercase."},
     {"rev", "<text>", "Reverse a string."},
     {"bin", "<number>", "Convert decimal to binary."},
     {"ascii", "", "Display the ASCII table."},
     {"hex", "<file>", "Display hexadecimal dump of a file."},
-    {"base64", "<text>", "Encode text to base64 (mock)."},
-    {"encrypt", "<text>", "Simple ROT1 encryption."},
-    {"decrypt", "<text>", "Simple ROT1 decryption."},
+    {"base64", "<text>", "Encode text to base64."},
+    {"encrypt", "<text>", "ROT13 encryption (reversible)."},
+    {"decrypt", "<text>", "ROT13 decryption (same as encrypt)."},
     
     // Network Commands
     {"ping", "<host>", "Simulate ping to a host."},

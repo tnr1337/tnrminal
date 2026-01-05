@@ -117,6 +117,7 @@ void cmd_wc(char** args, int c);
 void cmd_sort(char** args, int c);
 void cmd_uniq(char** args, int c);
 void cmd_upper(char** args, int c);
+void cmd_lower(char** args, int c);
 void cmd_rev(char** args, int c);
 void cmd_bin(char** args, int c);
 void cmd_ascii(char** args, int c);
