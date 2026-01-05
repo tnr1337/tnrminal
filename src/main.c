@@ -5,7 +5,7 @@
 // Simplest: Define table here and helper here.
 
 Command commands[] = {
-    // System
+    // System (15 + 10 new = 25)
     {"sys", cmd_sys, "System Monitor"},
     {"proc", cmd_proc, "Process List"},
     {"ps", cmd_ps, "Enhanced Process List"},
@@ -21,8 +21,19 @@ Command commands[] = {
     {"shutdown", cmd_shutdown, "Simulate Shutdown"},
     {"reboot", cmd_reboot, "Simulate Reboot"},
     {"lock", cmd_lock, "Lock Session"},
+    // NEW System
+    {"kill", cmd_kill, "Kill Process"},
+    {"taskmgr", cmd_taskmgr, "Task Manager"},
+    {"meminfo", cmd_meminfo, "Memory Info"},
+    {"cpuinfo", cmd_cpuinfo, "CPU Info"},
+    {"battery", cmd_battery, "Battery Status"},
+    {"diskinfo", cmd_diskinfo, "Disk Info"},
+    {"services", cmd_services, "List Services"},
+    {"netstat", cmd_netstat, "Network Stats"},
+    {"datetime", cmd_datetime, "Full DateTime"},
+    {"syslog", cmd_syslog, "System Log"},
 
-    // File
+    // File (18 + 10 new = 28)
     {"ls", cmd_ls, "List Directory"},
     {"dir", cmd_ls, "Alias for ls"},
     {"pwd", cmd_pwd, "Print Working Directory"},
@@ -43,8 +54,19 @@ Command commands[] = {
     {"tree", cmd_tree, "Dir Tree"},
     {"diff", cmd_diff, "Compare Files"},
     {"du", cmd_du, "Disk Usage"},
+    // NEW File
+    {"rename", cmd_rename, "Rename File"},
+    {"stat", cmd_stat, "File Statistics"},
+    {"chmod", cmd_chmod, "File Permissions"},
+    {"ln", cmd_ln, "Symlink Info"},
+    {"truncate", cmd_truncate, "Truncate File"},
+    {"append", cmd_append, "Append to File"},
+    {"fsize", cmd_fsize, "File Size"},
+    {"ftype", cmd_ftype, "File Type"},
+    {"search", cmd_search, "Search Files"},
+    {"zip", cmd_zip, "Archive Info"},
 
-    // Data
+    // Data (13 + 8 new = 21)
     {"grep", cmd_grep, "Find text"},
     {"wc", cmd_wc, "Word Count"},
     {"sort", cmd_sort, "Sort Lines"},
@@ -58,13 +80,29 @@ Command commands[] = {
     {"base64", cmd_base64, "Base64 Encode"},
     {"encrypt", cmd_encrypt, "ROT13 Encrypt"},
     {"decrypt", cmd_decrypt, "ROT13 Decrypt"},
+    // NEW Data
+    {"md5", cmd_md5, "MD5 Hash"},
+    {"sha256", cmd_sha256, "SHA256 Hash"},
+    {"json", cmd_json, "JSON Viewer"},
+    {"csv", cmd_csv, "CSV Viewer"},
+    {"count", cmd_count, "Char Counter"},
+    {"replace", cmd_replace, "Text Replace"},
+    {"trim", cmd_trim, "Trim Text"},
+    {"split", cmd_split, "Split String"},
 
-    // Network
+    // Network (3 + 6 new = 9)
     {"ping", cmd_ping, "Ping Simulator"},
     {"ip", cmd_ip, "Show IP"},
     {"curl", cmd_curl, "HTTP Request Sim"},
+    // NEW Network
+    {"wget", cmd_wget, "Download Sim"},
+    {"dns", cmd_dns, "DNS Lookup"},
+    {"traceroute", cmd_traceroute, "Trace Route"},
+    {"ifconfig", cmd_ifconfig, "Interface Config"},
+    {"port", cmd_port, "Port Scanner"},
+    {"http", cmd_http, "HTTP Tester"},
 
-    // Fun
+    // Fun & Games (9 + 8 new = 17)
     {"matrix", cmd_matrix, "Digital Rain"},
     {"snake", cmd_snake, "Snake Game"},
     {"weather", cmd_weather, "Sim Weather"},
@@ -74,8 +112,17 @@ Command commands[] = {
     {"dice", cmd_dice, "Roll D6"},
     {"beep", cmd_beep, "System Beep"},
     {"selfdestruct", cmd_selfdestruct, "Don't run this"},
+    // NEW Games
+    {"hangman", cmd_hangman, "Hangman Game"},
+    {"tictactoe", cmd_tictactoe, "Tic-Tac-Toe"},
+    {"quiz", cmd_quiz, "Tech Quiz"},
+    {"typing", cmd_typing, "Typing Test"},
+    {"countdown", cmd_countdown, "Countdown"},
+    {"stopwatch", cmd_stopwatch, "Stopwatch"},
+    {"slots", cmd_slots, "Slot Machine"},
+    {"rps", cmd_rps, "Rock-Paper-Scissors"},
 
-    // Utils & Productivity
+    // Utils & Productivity (15 + 8 new = 23)
     {"calc", cmd_calc, "Basic Calculator"},
     {"todo", cmd_todo, "Todo Manager"},
     {"calendar", cmd_calendar, "Show Calendar"},
@@ -91,48 +138,62 @@ Command commands[] = {
     {"man", cmd_man, "Manual Page"},
     {"run", cmd_run, "Run System Cmd"},
     {"exit", cmd_exit, "Shutdown"},
-    {"help", cmd_help, "List Commands"}
+    {"help", cmd_help, "List Commands"},
+    // NEW Productivity
+    {"alias", cmd_alias, "Cmd Aliases"},
+    {"bookmark", cmd_bookmark, "Dir Bookmarks"},
+    {"notes", cmd_notes, "Note Taking"},
+    {"reminder", cmd_reminder, "Set Reminder"},
+    {"timer", cmd_timer, "Timer"},
+    {"clock", cmd_clock, "Live Clock"},
+    {"about", cmd_about, "About Terminal"},
+    {"version", cmd_version, "Version Info"}
 };
 
 void cmd_help(char** args, int c) {
-    print_header("HELP MENU");
+    print_header("HELP MENU - 120+ COMMANDS");
     
     set_col(C_INFO);
-    printf("\n  SYSTEM COMMANDS:\n");
+    printf("\n  SYSTEM (25):\n");
     set_col(C_RESET);
     printf("    sys, proc, ps, fetch, whoami, hostname, os, uptime, drives, env\n");
-    printf("    time, date, shutdown, reboot, lock\n");
+    printf("    time, date, shutdown, reboot, lock, kill, taskmgr, meminfo\n");
+    printf("    cpuinfo, battery, diskinfo, services, netstat, datetime, syslog\n");
     
     set_col(C_INFO);
-    printf("\n  FILE COMMANDS:\n");
+    printf("\n  FILE (28):\n");
     set_col(C_RESET);
     printf("    ls, dir, pwd, cd, mkdir, rmdir, mkfile, touch, rm, cp, mv\n");
-    printf("    cat, head, tail, edit, find, tree, diff, du\n");
+    printf("    cat, head, tail, edit, find, tree, diff, du, rename, stat\n");
+    printf("    chmod, ln, truncate, append, fsize, ftype, search, zip\n");
     
     set_col(C_INFO);
-    printf("\n  DATA COMMANDS:\n");
+    printf("\n  DATA (21):\n");
     set_col(C_RESET);
     printf("    grep, wc, sort, uniq, upper, lower, rev, bin, ascii, hex\n");
-    printf("    base64, encrypt, decrypt\n");
+    printf("    base64, encrypt, decrypt, md5, sha256, json, csv, count\n");
+    printf("    replace, trim, split\n");
     
     set_col(C_INFO);
-    printf("\n  NETWORK COMMANDS:\n");
+    printf("\n  NETWORK (9):\n");
     set_col(C_RESET);
-    printf("    ping, ip, curl\n");
+    printf("    ping, ip, curl, wget, dns, traceroute, ifconfig, port, http\n");
     
     set_col(C_INFO);
-    printf("\n  FUN & GAMES:\n");
+    printf("\n  FUN & GAMES (17):\n");
     set_col(C_RESET);
     printf("    matrix, snake, weather, joke, fortune, rand, dice, beep\n");
+    printf("    hangman, tictactoe, quiz, typing, countdown, stopwatch, slots, rps\n");
     
     set_col(C_INFO);
-    printf("\n  UTILITIES:\n");
+    printf("\n  UTILITIES (23):\n");
     set_col(C_RESET);
     printf("    calc, todo, calendar, pomodoro, journal, script, history\n");
-    printf("    clear, cls, echo, color, theme, man, run, exit\n");
+    printf("    clear, cls, echo, color, theme, man, run, exit, help\n");
+    printf("    alias, bookmark, notes, reminder, timer, clock, about, version\n");
     
     set_col(C_WARN);
-    printf("\n  TIP: Use 'man <command>' for detailed help on any command.\n");
+    printf("\n  TIP: Use 'man <command>' for detailed help. Use 'about' for info.\n");
     set_col(C_RESET);
 }
 

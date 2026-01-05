@@ -786,3 +786,508 @@ void cmd_split(char** args, int c) {
     }
     set_col(C_RESET);
 }
+
+// ============================================================================
+// NEW NETWORK COMMANDS (6)
+// ============================================================================
+
+// Wget Simulator
+void cmd_wget(char** args, int c) {
+    if (c < 2) { print_usage("wget", "<url>"); return; }
+    
+    print_header("DOWNLOAD");
+    printf("URL: %s\n\n", args[1]);
+    
+    printf("Connecting..."); tnr_sleep(300);
+    set_col(C_OK); printf(" OK\n"); set_col(C_RESET);
+    
+    printf("Resolving host..."); tnr_sleep(200);
+    set_col(C_OK); printf(" OK\n"); set_col(C_RESET);
+    
+    printf("Downloading: [");
+    for (int i = 0; i <= 20; i++) {
+        set_col(C_OK);
+        for (int j = 0; j < i; j++) printf("#");
+        set_col(C_RESET);
+        for (int j = i; j < 20; j++) printf("-");
+        printf("] %d%%", i * 5);
+        tnr_sleep(50 + rand() % 100);
+        printf("\rDownloading: [");
+    }
+    printf("\n\n");
+    
+    set_col(C_OK);
+    printf("Download complete!\n");
+    printf("Saved as: downloaded_file.html\n");
+    set_col(C_RESET);
+}
+
+// DNS Lookup
+void cmd_dns(char** args, int c) {
+    if (c < 2) { print_usage("dns", "<domain>"); return; }
+    
+    print_header("DNS LOOKUP");
+    printf("  Domain: %s\n\n", args[1]);
+    
+    printf("  Name:    %s\n", args[1]);
+    printf("  Type:    A Record\n");
+    printf("  Address: %d.%d.%d.%d\n", rand() % 256, rand() % 256, rand() % 256, rand() % 256);
+    printf("  TTL:     %d seconds\n", 300 + rand() % 3600);
+    printf("\n  AAAA Record (IPv6):\n");
+    printf("  Address: 2001:db8::%x:%x\n", rand() % 65535, rand() % 65535);
+}
+
+// Traceroute Simulator
+void cmd_traceroute(char** args, int c) {
+    if (c < 2) { print_usage("traceroute", "<host>"); return; }
+    
+    print_header("TRACEROUTE");
+    printf("Tracing route to %s\nMaximum hops: 30\n\n", args[1]);
+    
+    for (int i = 1; i <= 5; i++) {
+        printf("  %d  ", i);
+        tnr_sleep(200 + rand() % 300);
+        int ms = 5 + rand() % 50;
+        printf("%d ms  %d ms  %d ms  ", ms, ms + rand() % 10, ms + rand() % 10);
+        printf("%d.%d.%d.%d\n", rand() % 256, rand() % 256, rand() % 256, rand() % 256);
+    }
+    printf("\nTrace complete.\n");
+}
+
+// Interface Configuration
+void cmd_ifconfig(char** args, int c) {
+    print_header("NETWORK INTERFACES");
+    printf("Ethernet adapter Ethernet:\n\n");
+    printf("   Status . . . . . . . : Media connected\n");
+    printf("   IPv4 Address . . . . : 192.168.1.%d\n", 100 + rand() % 155);
+    printf("   Subnet Mask  . . . . : 255.255.255.0\n");
+    printf("   Default Gateway  . . : 192.168.1.1\n");
+    printf("   MAC Address  . . . . : %02X:%02X:%02X:%02X:%02X:%02X\n",
+           rand() % 256, rand() % 256, rand() % 256, rand() % 256, rand() % 256, rand() % 256);
+}
+
+// Port Scanner
+void cmd_port(char** args, int c) {
+    if (c < 2) { print_usage("port", "<port>"); return; }
+    int port = atoi(args[1]);
+    print_header("PORT CHECK");
+    printf("  Port: %d\n\n", port);
+    printf("  Status: ");
+    if (rand() % 2) { set_col(C_OK); printf("OPEN\n"); }
+    else { set_col(C_ERR); printf("CLOSED\n"); }
+    set_col(C_RESET);
+}
+
+// HTTP Tester
+void cmd_http(char** args, int c) {
+    if (c < 3) { print_usage("http", "<method> <url>"); return; }
+    print_header("HTTP REQUEST");
+    printf("  Method: %s\n  URL: %s\n\n", args[1], args[2]);
+    tnr_sleep(300);
+    int status = (rand() % 10 > 2) ? 200 : 404;
+    set_col(status == 200 ? C_OK : C_ERR);
+    printf("  HTTP/1.1 %d %s\n", status, status == 200 ? "OK" : "Not Found");
+    set_col(C_RESET);
+}
+
+// ============================================================================
+// NEW GAMES COMMANDS (8)
+// ============================================================================
+
+// Hangman Game
+void cmd_hangman(char** args, int c) {
+    const char* words[] = {"PROGRAMMING", "TERMINAL", "COMPUTER", "KEYBOARD", "ALGORITHM"};
+    const char* word = words[rand() % 5];
+    int len = (int)strlen(word);
+    char guessed[26] = {0};
+    int wrong = 0, gl = 0;
+    char revealed[20];
+    for (int i = 0; i < len; i++) revealed[i] = '_';
+    revealed[len] = '\0';
+    
+    print_header("HANGMAN");
+    printf("Guess the word! (6 tries)\n");
+    
+    while (wrong < 6 && strcmp(revealed, word) != 0) {
+        printf("\n  Word: ");
+        for (int i = 0; i < len; i++) printf("%c ", revealed[i]);
+        printf("\n  Wrong: %d/6  Guessed: %s\n", wrong, guessed);
+        printf("  Letter: ");
+        char ch = _getch();
+        ch = (ch >= 'a' && ch <= 'z') ? ch - 32 : ch;
+        printf("%c\n", ch);
+        if (strchr(guessed, ch)) { printf("  Already guessed!\n"); continue; }
+        guessed[gl++] = ch;
+        int found = 0;
+        for (int i = 0; i < len; i++) if (word[i] == ch) { revealed[i] = ch; found = 1; }
+        if (!found) wrong++;
+    }
+    printf("\n");
+    set_col(strcmp(revealed, word) == 0 ? C_OK : C_ERR);
+    printf("  %s! Word: %s\n", strcmp(revealed, word) == 0 ? "YOU WIN" : "GAME OVER", word);
+    set_col(C_RESET);
+}
+
+// Tic-Tac-Toe
+void cmd_tictactoe(char** args, int c) {
+    char board[9] = {'1','2','3','4','5','6','7','8','9'};
+    int player = 1, moves = 0;
+    print_header("TIC-TAC-TOE");
+    printf("You are X. Enter 1-9 to place.\n");
+    
+    while (moves < 9) {
+        printf("\n   %c | %c | %c\n  ---+---+---\n   %c | %c | %c\n  ---+---+---\n   %c | %c | %c\n\n",
+               board[0],board[1],board[2],board[3],board[4],board[5],board[6],board[7],board[8]);
+        int pos;
+        if (player == 1) {
+            printf("  Your move: "); char ch = _getch(); printf("%c\n", ch);
+            pos = ch - '1';
+            if (pos < 0 || pos > 8 || board[pos] == 'X' || board[pos] == 'O') continue;
+            board[pos] = 'X';
+        } else {
+            do { pos = rand() % 9; } while (board[pos] == 'X' || board[pos] == 'O');
+            board[pos] = 'O'; printf("  Computer: %d\n", pos + 1);
+        }
+        moves++;
+        int w[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
+        for (int i = 0; i < 8; i++) {
+            if (board[w[i][0]] == board[w[i][1]] && board[w[i][1]] == board[w[i][2]]) {
+                set_col(player == 1 ? C_OK : C_ERR);
+                printf("  %s wins!\n", player == 1 ? "You" : "Computer");
+                set_col(C_RESET); return;
+            }
+        }
+        player = (player == 1) ? 2 : 1;
+    }
+    printf("  Draw!\n");
+}
+
+// Quiz Game
+void cmd_quiz(char** args, int c) {
+    struct { const char* q; const char* a; char ans; } quiz[] = {
+        {"What does CPU stand for?", "A) Central Processing Unit  B) Computer Personal Unit", 'A'},
+        {"Which language is TNRM1N4L written in?", "A) Python  B) C", 'B'},
+        {"What is 0xFF in decimal?", "A) 255  B) 256", 'A'},
+        {"Which company created Windows?", "A) Apple  B) Microsoft", 'B'},
+        {"What does RAM stand for?", "A) Random Access Memory  B) Read Any Memory", 'A'}
+    };
+    print_header("TECH QUIZ");
+    int score = 0;
+    for (int i = 0; i < 5; i++) {
+        printf("\n  Q%d: %s\n  %s\n  Answer: ", i + 1, quiz[i].q, quiz[i].a);
+        char ans = _getch();
+        ans = (ans >= 'a') ? ans - 32 : ans;
+        printf("%c\n", ans);
+        if (ans == quiz[i].ans) { set_col(C_OK); printf("  Correct!\n"); score++; }
+        else { set_col(C_ERR); printf("  Wrong! Answer: %c\n", quiz[i].ans); }
+        set_col(C_RESET);
+    }
+    printf("\n  Final Score: %d/5\n", score);
+}
+
+// Typing Test
+void cmd_typing(char** args, int c) {
+    const char* text = "The quick brown fox jumps over the lazy dog.";
+    print_header("TYPING TEST");
+    printf("Type the following text as fast as you can:\n\n");
+    set_col(C_INFO); printf("  %s\n\n", text); set_col(C_RESET);
+    printf("  Press ENTER to start..."); _getch(); printf("\n\n  GO! ");
+    DWORD start = GetTickCount();
+    char input[100] = {0};
+    int i = 0;
+    while (i < 99) {
+        char ch = _getch();
+        if (ch == '\r') break;
+        input[i++] = ch; printf("%c", ch);
+    }
+    input[i] = '\0';
+    DWORD elapsed = GetTickCount() - start;
+    double seconds = elapsed / 1000.0;
+    int correct = 0;
+    for (int j = 0; j < i && text[j]; j++) if (input[j] == text[j]) correct++;
+    printf("\n\n  Time: %.2f seconds\n", seconds);
+    printf("  Accuracy: %d%%\n", (int)(correct * 100.0 / strlen(text)));
+    printf("  WPM: %.0f\n", (strlen(text) / 5.0) / (seconds / 60.0));
+}
+
+// Countdown Timer
+void cmd_countdown(char** args, int c) {
+    if (c < 2) { print_usage("countdown", "<seconds>"); return; }
+    int secs = atoi(args[1]);
+    if (secs <= 0 || secs > 3600) { print_error("Enter 1-3600 seconds."); return; }
+    print_header("COUNTDOWN");
+    hide_cursor();
+    for (int i = secs; i >= 0; i--) {
+        printf("\r  %02d:%02d ", i / 60, i % 60);
+        if (i > 0) tnr_sleep(1000);
+    }
+    show_cursor();
+    printf("\n\n"); set_col(C_OK); printf("  TIME'S UP!\n"); set_col(C_RESET); printf("\a");
+}
+
+// Stopwatch
+void cmd_stopwatch(char** args, int c) {
+    print_header("STOPWATCH");
+    printf("Press SPACE to start/stop, Q to quit.\n\n");
+    int running_sw = 0;
+    DWORD start = 0, elapsed = 0;
+    hide_cursor();
+    while (1) {
+        if (_kbhit()) {
+            char ch = _getch();
+            if (ch == 'q' || ch == 'Q') break;
+            if (ch == ' ') {
+                if (!running_sw) { start = GetTickCount() - elapsed; running_sw = 1; }
+                else { elapsed = GetTickCount() - start; running_sw = 0; }
+            }
+        }
+        DWORD current = running_sw ? GetTickCount() - start : elapsed;
+        int ms = current % 1000;
+        int s = (current / 1000) % 60;
+        int m = (current / 60000) % 60;
+        printf("\r  %02d:%02d.%03d ", m, s, ms);
+        tnr_sleep(50);
+    }
+    show_cursor();
+    printf("\n");
+}
+
+// Slot Machine
+void cmd_slots(char** args, int c) {
+    const char* symbols[] = {"7", "$", "*", "#", "@"};
+    print_header("SLOT MACHINE");
+    printf("Press ENTER to spin!\n\n"); _getch();
+    for (int spin = 0; spin < 10; spin++) {
+        printf("\r  [ %s | %s | %s ]  ", symbols[rand()%5], symbols[rand()%5], symbols[rand()%5]);
+        tnr_sleep(100);
+    }
+    int r1 = rand() % 5, r2 = rand() % 5, r3 = rand() % 5;
+    printf("\r  [ %s | %s | %s ]  \n\n", symbols[r1], symbols[r2], symbols[r3]);
+    if (r1 == r2 && r2 == r3) { set_col(C_OK); printf("  JACKPOT!!!\n"); }
+    else if (r1 == r2 || r2 == r3 || r1 == r3) { set_col(C_WARN); printf("  Two match! Small win!\n"); }
+    else { set_col(C_ERR); printf("  No match. Try again!\n"); }
+    set_col(C_RESET);
+}
+
+// Rock Paper Scissors
+void cmd_rps(char** args, int c) {
+    const char* choices[] = {"Rock", "Paper", "Scissors"};
+    print_header("ROCK PAPER SCISSORS");
+    printf("Enter R, P, or S: ");
+    char ch = _getch();
+    ch = (ch >= 'a') ? ch - 32 : ch;
+    printf("%c\n\n", ch);
+    int player = (ch == 'R') ? 0 : (ch == 'P') ? 1 : (ch == 'S') ? 2 : -1;
+    if (player < 0) { print_error("Invalid choice."); return; }
+    int comp = rand() % 3;
+    printf("  You: %s\n  Computer: %s\n\n", choices[player], choices[comp]);
+    if (player == comp) { set_col(C_WARN); printf("  Draw!\n"); }
+    else if ((player == 0 && comp == 2) || (player == 1 && comp == 0) || (player == 2 && comp == 1)) {
+        set_col(C_OK); printf("  You WIN!\n");
+    } else { set_col(C_ERR); printf("  You LOSE!\n"); }
+    set_col(C_RESET);
+}
+
+// ============================================================================
+// NEW PRODUCTIVITY COMMANDS (8)
+// ============================================================================
+
+// Global storage for aliases and bookmarks
+static struct { char name[32]; char cmd[256]; } aliases[MAX_ALIASES];
+static int alias_count = 0;
+static struct { char name[32]; char path[MAX_PATH]; } bookmarks[MAX_BOOKMARKS];
+static int bookmark_count = 0;
+
+// Alias Command
+void cmd_alias(char** args, int c) {
+    if (c < 2) {
+        print_header("ALIASES");
+        if (alias_count == 0) { printf("No aliases defined.\n"); return; }
+        for (int i = 0; i < alias_count; i++) {
+            set_col(C_OK); printf("  %-15s ", aliases[i].name);
+            set_col(C_RESET); printf("= %s\n", aliases[i].cmd);
+        }
+        return;
+    }
+    if (strcmp(args[1], "add") == 0 && c >= 4) {
+        if (alias_count >= MAX_ALIASES) { print_error("Alias limit reached."); return; }
+        safe_strcpy(aliases[alias_count].name, args[2], 32);
+        aliases[alias_count].cmd[0] = '\0';
+        for (int i = 3; i < c; i++) {
+            strcat(aliases[alias_count].cmd, args[i]);
+            if (i < c - 1) strcat(aliases[alias_count].cmd, " ");
+        }
+        alias_count++;
+        print_success("Alias added.");
+    } else if (strcmp(args[1], "rm") == 0 && c >= 3) {
+        for (int i = 0; i < alias_count; i++) {
+            if (strcmp(aliases[i].name, args[2]) == 0) {
+                for (int j = i; j < alias_count - 1; j++) aliases[j] = aliases[j + 1];
+                alias_count--;
+                print_success("Alias removed.");
+                return;
+            }
+        }
+        print_error("Alias not found.");
+    } else {
+        print_usage("alias", "[add <name> <command> | rm <name>]");
+    }
+}
+
+// Bookmark Command
+void cmd_bookmark(char** args, int c) {
+    if (c < 2) {
+        print_header("BOOKMARKS");
+        if (bookmark_count == 0) { printf("No bookmarks saved.\n"); return; }
+        for (int i = 0; i < bookmark_count; i++) {
+            set_col(C_OK); printf("  [%d] %-15s ", i + 1, bookmarks[i].name);
+            set_col(C_RESET); printf("%s\n", bookmarks[i].path);
+        }
+        return;
+    }
+    if (strcmp(args[1], "add") == 0) {
+        if (bookmark_count >= MAX_BOOKMARKS) { print_error("Bookmark limit reached."); return; }
+        if (c >= 3) safe_strcpy(bookmarks[bookmark_count].name, args[2], 32);
+        else sprintf(bookmarks[bookmark_count].name, "bm%d", bookmark_count + 1);
+        _getcwd(bookmarks[bookmark_count].path, MAX_PATH);
+        bookmark_count++;
+        print_success("Bookmark saved.");
+    } else if (strcmp(args[1], "go") == 0 && c >= 3) {
+        int idx = atoi(args[2]) - 1;
+        if (idx >= 0 && idx < bookmark_count) {
+            if (_chdir(bookmarks[idx].path) == 0) {
+                update_cwd();
+                printf("Changed to: %s\n", current_dir);
+            } else print_error("Path not found.");
+        } else {
+            for (int i = 0; i < bookmark_count; i++) {
+                if (strcmp(bookmarks[i].name, args[2]) == 0) {
+                    if (_chdir(bookmarks[i].path) == 0) { update_cwd(); printf("Changed to: %s\n", current_dir); }
+                    return;
+                }
+            }
+            print_error("Bookmark not found.");
+        }
+    } else {
+        print_usage("bookmark", "[add [name] | go <name|number>]");
+    }
+}
+
+// Notes Command
+void cmd_notes(char** args, int c) {
+    const char* notes_file = "tnr_notes.txt";
+    if (c < 2) {
+        print_header("NOTES");
+        FILE* f = fopen(notes_file, "r");
+        if (!f) { printf("No notes yet. Use 'notes add <text>' to create.\n"); return; }
+        char line[256]; int i = 1;
+        while (fgets(line, sizeof(line), f)) {
+            set_col(C_INFO); printf("  %d. ", i++); set_col(C_RESET); printf("%s", line);
+        }
+        fclose(f);
+        return;
+    }
+    if (strcmp(args[1], "add") == 0 && c >= 3) {
+        FILE* f = fopen(notes_file, "a");
+        if (!f) { print_error("Cannot create notes file."); return; }
+        for (int i = 2; i < c; i++) fprintf(f, "%s ", args[i]);
+        fprintf(f, "\n");
+        fclose(f);
+        print_success("Note added.");
+    } else if (strcmp(args[1], "clear") == 0) {
+        remove(notes_file);
+        print_success("Notes cleared.");
+    } else {
+        print_usage("notes", "[add <text> | clear]");
+    }
+}
+
+// Reminder Command
+void cmd_reminder(char** args, int c) {
+    if (c < 3) { print_usage("reminder", "<seconds> <message>"); return; }
+    int secs = atoi(args[1]);
+    if (secs <= 0) { print_error("Invalid time."); return; }
+    printf("Reminder set for %d seconds...\n", secs);
+    for (int i = secs; i > 0; i--) {
+        printf("\rReminder in %d sec... ", i);
+        tnr_sleep(1000);
+    }
+    printf("\n\n");
+    set_col(C_WARN);
+    printf("  REMINDER: ");
+    for (int i = 2; i < c; i++) printf("%s ", args[i]);
+    printf("\n\a");
+    set_col(C_RESET);
+}
+
+// Timer Command  
+void cmd_timer(char** args, int c) {
+    if (c < 2) { print_usage("timer", "<seconds>"); return; }
+    int secs = atoi(args[1]);
+    if (secs <= 0 || secs > 3600) { print_error("Enter 1-3600."); return; }
+    print_header("TIMER");
+    hide_cursor();
+    for (int i = 0; i <= secs; i++) {
+        int pct = (i * 100) / secs;
+        printf("\r  %02d:%02d [%d%%] ", i / 60, i % 60, pct);
+        if (i < secs) tnr_sleep(1000);
+    }
+    show_cursor();
+    printf("\n\n"); printf("\a"); set_col(C_OK); printf("  Done!\n"); set_col(C_RESET);
+}
+
+// Live Clock
+void cmd_clock(char** args, int c) {
+    print_header("LIVE CLOCK");
+    printf("Press any key to exit...\n\n");
+    hide_cursor();
+    while (!_kbhit()) {
+        SYSTEMTIME st; GetLocalTime(&st);
+        printf("\r  %02d:%02d:%02d ", st.wHour, st.wMinute, st.wSecond);
+        tnr_sleep(500);
+    }
+    _getch();
+    show_cursor();
+    printf("\n");
+}
+
+// About
+void cmd_about(char** args, int c) {
+    print_header("ABOUT TNRM1N4L");
+    set_col(C_HACK);
+    printf("\n  ████████╗███╗   ██╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗\n");
+    printf("  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║\n");
+    printf("     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║\n");
+    printf("     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║\n");
+    printf("     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗\n");
+    printf("     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝\n");
+    set_col(C_RESET);
+    printf("\n  Version:     %s\n", VERSION);
+    printf("  Build Date:  %s\n", BUILD_DATE);
+    printf("  Platform:    Windows Native\n");
+    printf("  Language:    C (C11)\n");
+    printf("\n  A custom terminal emulator with 100+ commands.\n");
+    printf("  Built for hackers, by hackers.\n\n");
+    set_col(C_INFO);
+    printf("  GitHub: github.com/your-repo/tnrminal\n");
+    set_col(C_RESET);
+}
+
+// Version
+void cmd_version(char** args, int c) {
+    print_header("VERSION INFO");
+    printf("\n  TNRM1N4L %s\n", VERSION);
+    printf("  Build: %s\n\n", BUILD_DATE);
+    printf("  Changelog:\n");
+    set_col(C_OK);
+    printf("  v4.0 - 50 new commands added\n");
+    printf("       - Games: hangman, tictactoe, quiz, slots, rps\n");
+    printf("       - System: kill, meminfo, cpuinfo, diskinfo\n");
+    printf("       - Network: wget, dns, traceroute, ifconfig\n");
+    printf("       - Data: md5, sha256, json, csv viewer\n");
+    printf("       - Productivity: alias, bookmark, notes, timer\n");
+    set_col(C_RESET);
+    printf("  v3.0 - Command history, dynamic calendar, man pages\n");
+    printf("  v2.0 - File operations, data processing\n");
+    printf("  v1.0 - Initial release\n");
+}
