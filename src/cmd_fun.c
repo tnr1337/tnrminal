@@ -1,88 +1,184 @@
 #include "tnr.h"
 
-// [NEW] Matrix Rain Effect
+// Matrix Rain Effect - Enhanced
 void cmd_matrix(char** args, int c) {
     system("cls");
-    set_col(C_HACK);
+    hide_cursor();
     
-    // Simple matrix effect: random columns
     int width = 80;
-    int cols[80];
-    for(int i=0; i<width; i++) cols[i] = rand() % 20;
-
-    printf("Press any key to stop...\n");
+    int height = 25;
+    int drops[80];
+    char chars[80];
+    
+    for(int i = 0; i < width; i++) {
+        drops[i] = rand() % height;
+        chars[i] = (rand() % 93) + 33;
+    }
+    
+    set_col(C_INFO);
+    printf("[ MATRIX - Press any key to exit ]\n");
     
     while(!_kbhit()) {
-        for(int i=0; i<width; i++) {
-             // 1 in 10 chance to draw char
-            if (rand() % 10 > 8) {
-                // Random Katakana-ish or ASCII
-                char ch = (rand() % 93) + 33;
-                printf("%c", ch);
-            } else {
+        for(int i = 0; i < width; i++) {
+            int x = i;
+            int y = drops[i];
+            
+            // Draw bright head
+            gotoxy(x, y + 1);
+            set_col(C_WHITE);
+            chars[i] = (rand() % 93) + 33;
+            printf("%c", chars[i]);
+            
+            // Draw trail
+            if (y > 0) {
+                gotoxy(x, y);
+                set_col(C_OK);
+                printf("%c", (rand() % 93) + 33);
+            }
+            
+            // Fade old chars
+            if (y > 3) {
+                gotoxy(x, y - 3);
+                set_col(C_HACK);
+                printf("%c", (rand() % 93) + 33);
+            }
+            
+            // Clear very old
+            if (y > 8) {
+                gotoxy(x, y - 8);
                 printf(" ");
             }
+            
+            drops[i]++;
+            if (drops[i] > height + 8) {
+                drops[i] = 0;
+            }
         }
-        // Small delay
-        tnr_sleep(50);
+        tnr_sleep(40);
     }
-    _getch(); // Clear key
+    _getch();
+    show_cursor();
     set_col(C_RESET);
     system("cls");
 }
 
-// [NEW] Snake Game (Very Basic)
+// Snake Game - Enhanced with trail
 void cmd_snake(char** args, int c) {
     system("cls");
     hide_cursor();
-    printf("SNAKE (WASD to move, X to quit)\n");
     
-    int x=10, y=10;
-    int fx=15, fy=15; // Fruit
+    #define SNAKE_LEN 100
+    int sx[SNAKE_LEN], sy[SNAKE_LEN];
+    int len = 3;
+    sx[0] = 10; sy[0] = 10;
+    sx[1] = 9; sy[1] = 10;
+    sx[2] = 8; sy[2] = 10;
+    
+    int fx = 15, fy = 15;
     int score = 0;
-    char key = 'd';
+    int dx = 1, dy = 0;
+    char key = 0;
     
-    while(key != 'x') {
-
-        gotoxy(0, 0); // No clear, just overwrite
-        printf("SNAKE (WASD to move, X to quit)\n");
-        printf("Score: %d\n", score);
+    while(1) {
+        gotoxy(0, 0);
+        set_col(C_INFO);
+        printf("+------------------[ SNAKE ]------------------+\n");
+        set_col(C_OK);
+        printf("| Score: %-5d                    WASD to move |\n", score);
+        set_col(C_INFO);
+        printf("+---------------------------------------------+\n");
+        set_col(C_RESET);
         
-        // Draw Field (20x20)
-        for(int i=0; i<20; i++) {
-            for(int j=0; j<20; j++) {
-                if (i==0 || i==19 || j==0 || j==19) printf("#");
-                else if (i==y && j==x) printf("O");
-                else if (i==fy && j==fx) printf("*");
-                else printf(" ");
+        // Draw border and game
+        for(int i = 0; i < 20; i++) {
+            gotoxy(0, i + 3);
+            for(int j = 0; j < 40; j++) {
+                if (i == 0 || i == 19) {
+                    set_col(C_INFO);
+                    printf("=");
+                } else if (j == 0 || j == 39) {
+                    set_col(C_INFO);
+                    printf("|");
+                } else {
+                    int isSnake = 0;
+                    for(int k = 0; k < len; k++) {
+                        if (i == sy[k] && j == sx[k]) {
+                            if (k == 0) {
+                                set_col(C_OK);
+                                printf("@");
+                            } else {
+                                set_col(C_HACK);
+                                printf("o");
+                            }
+                            isSnake = 1;
+                            break;
+                        }
+                    }
+                    if (!isSnake) {
+                        if (i == fy && j == fx) {
+                            set_col(C_ERR);
+                            printf("*");
+                        } else {
+                            printf(" ");
+                        }
+                    }
+                }
             }
-            printf("\n");
         }
         
         if (_kbhit()) {
             key = _getch();
+            if (key == 'w' && dy != 1) { dx = 0; dy = -1; }
+            if (key == 's' && dy != -1) { dx = 0; dy = 1; }
+            if (key == 'a' && dx != 1) { dx = -1; dy = 0; }
+            if (key == 'd' && dx != -1) { dx = 1; dy = 0; }
+            if (key == 'x' || key == 'q') break;
         }
         
-        if (key == 'w') y--;
-        if (key == 's') y++;
-        if (key == 'a') x--;
-        if (key == 'd') x++;
+        // Move snake
+        for(int i = len - 1; i > 0; i--) {
+            sx[i] = sx[i-1];
+            sy[i] = sy[i-1];
+        }
+        sx[0] += dx;
+        sy[0] += dy;
         
-        if (x == fx && y == fy) {
-            score++;
-            fx = (rand() % 18) + 1;
-            fy = (rand() % 18) + 1;
+        // Check fruit
+        if (sx[0] == fx && sy[0] == fy) {
+            score += 10;
+            if (len < SNAKE_LEN - 1) len++;
+            fx = (rand() % 36) + 2;
+            fy = (rand() % 16) + 2;
+            printf("\a");
         }
         
-        if (x<=0 || x>=19 || y<=0 || y>=19) {
-            printf("GAME OVER!\n");
+        // Check collision
+        if (sx[0] <= 0 || sx[0] >= 39 || sy[0] <= 0 || sy[0] >= 19) {
+            gotoxy(15, 12);
+            set_col(C_ERR);
+            printf("GAME OVER!");
+            tnr_sleep(2000);
             break;
         }
         
-        tnr_sleep(100);
+        // Self collision
+        for(int i = 1; i < len; i++) {
+            if (sx[0] == sx[i] && sy[0] == sy[i]) {
+                gotoxy(15, 12);
+                set_col(C_ERR);
+                printf("GAME OVER!");
+                tnr_sleep(2000);
+                goto end_snake;
+            }
+        }
+        
+        tnr_sleep(80);
     }
-    printf("Final Score: %d\n", score);
+    end_snake:
     show_cursor();
+    set_col(C_RESET);
+    gotoxy(0, 24);
+    printf("\nFinal Score: %d\n", score);
 }
 
 void cmd_weather(char** args, int c) {

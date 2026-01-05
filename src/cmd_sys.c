@@ -197,7 +197,7 @@ void cmd_ps(char** args, int c) {
     }
 }
 
-// [NEW] Fetch ASCII Art
+// [NEW] Fetch ASCII Art - Enhanced
 void cmd_fetch(char** args, int c) {
     char computer[256];
     char user[256];
@@ -211,20 +211,47 @@ void cmd_fetch(char** args, int c) {
     MEMORYSTATUSEX mem;
     mem.dwLength = sizeof(mem);
     if(pGlobalMemoryStatusEx) pGlobalMemoryStatusEx(&mem);
+    
+    DWORD ticks = GetTickCount();
+    int hours = ticks / 3600000;
+    int mins = (ticks % 3600000) / 60000;
 
-    set_col(C_HACK); // Special Green
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+
     printf("\n");
-    printf("   .-------.    %s@%s\n", user, computer);
-    printf("   |  |>_  |    ----------------------\n");
-    printf("   |       |    OS: Windows Native\n");
-    printf("   |       |    Sh: TNRM1N4L v%s\n", VERSION);
-    if(pGlobalMemoryStatusEx) 
-        printf("   |_______|    RAM: %llu / %llu MB\n", (mem.ullTotalPhys - mem.ullAvailPhys)/1024/1024, mem.ullTotalPhys/1024/1024);
-    else
-        printf("   |_______|    RAM: Unknown\n");
-    printf("                Uptime: %ld min\n", GetTickCount()/60000);
+    set_col(C_HACK);
+    printf("        _____  _   _  ____   __  __  __   _   _    _    _     \n");
+    printf("       |_   _|| \\ | ||  _ \\ |  \\/  ||  | | \\ | |  / \\  | |    ");
+    set_col(C_OK); printf("%s", user); set_col(C_RESET); printf("@"); set_col(C_INFO); printf("%s\n", computer);
+    set_col(C_HACK);
+    printf("         | |  |  \\| || |_) || |\\/| || | |  \\| | / _ \\ | |    ");
+    set_col(C_RESET); printf("-----------------------------\n");
+    set_col(C_HACK);
+    printf("         | |  | |\\  ||  _ < | |  | || | | |\\  |/ ___ \\| |___ ");
+    set_col(C_INFO); printf("OS: "); set_col(C_RESET); printf("Windows Native\n");
+    set_col(C_HACK);
+    printf("         |_|  |_| \\_||_| \\_\\|_|  |_||_| |_| \\_/_/   \\_\\_____|");
+    set_col(C_INFO); printf("Shell: "); set_col(C_RESET); printf("TNRM1N4L v%s\n", VERSION);
+    printf("                                                        ");
+    set_col(C_INFO); printf("CPU: "); set_col(C_RESET); printf("%lu cores\n", si.dwNumberOfProcessors);
+    printf("                                                        ");
+    if(pGlobalMemoryStatusEx) {
+        unsigned long long used = (mem.ullTotalPhys - mem.ullAvailPhys)/1024/1024;
+        unsigned long long total = mem.ullTotalPhys/1024/1024;
+        set_col(C_INFO); printf("Memory: "); set_col(C_RESET); 
+        printf("%llu / %llu MB (%lu%%)\n", used, total, mem.dwMemoryLoad);
+    }
+    printf("                                                        ");
+    set_col(C_INFO); printf("Uptime: "); set_col(C_RESET); printf("%d hours, %d mins\n", hours, mins);
     printf("\n");
+    printf("                                                        ");
+    // Color palette
+    for(int i = 0; i < 8; i++) { set_col(i); printf("███"); }
+    printf("\n                                                        ");
+    for(int i = 8; i < 16; i++) { set_col(i); printf("███"); }
     set_col(C_RESET);
+    printf("\n\n");
 }
 
 void cmd_time(char** args, int c) {

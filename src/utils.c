@@ -85,3 +85,48 @@ int safe_strcpy(char* dest, const char* src, size_t dest_size) {
     dest[copy_len] = '\0';
     return (src_len < dest_size) ? 1 : 0;
 }
+
+// Progress bar utility
+void print_progress(int percent, int width) {
+    int filled = (percent * width) / 100;
+    printf("[");
+    set_col(C_OK);
+    for (int i = 0; i < filled; i++) printf("#");
+    set_col(C_RESET);
+    for (int i = filled; i < width; i++) printf("-");
+    printf("] %d%%", percent);
+}
+
+// Loading animation
+void print_loading(const char* msg, int ms) {
+    const char* spinner = "|/-\\";
+    hide_cursor();
+    for (int i = 0; i < (ms / 100); i++) {
+        printf("\r%s %c ", msg, spinner[i % 4]);
+        tnr_sleep(100);
+    }
+    show_cursor();
+    printf("\r%s Done!\n", msg);
+}
+
+// Box drawing
+void print_box(const char* title, int width) {
+    set_col(C_INFO);
+    printf("+");
+    for (int i = 0; i < width - 2; i++) printf("-");
+    printf("+\n");
+    
+    int padding = (width - 2 - (int)strlen(title)) / 2;
+    printf("|");
+    for (int i = 0; i < padding; i++) printf(" ");
+    set_col(C_OK);
+    printf("%s", title);
+    set_col(C_INFO);
+    for (int i = 0; i < width - 2 - padding - (int)strlen(title); i++) printf(" ");
+    printf("|\n");
+    
+    printf("+");
+    for (int i = 0; i < width - 2; i++) printf("-");
+    printf("+\n");
+    set_col(C_RESET);
+}

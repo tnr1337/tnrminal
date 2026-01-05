@@ -78,6 +78,9 @@ void tnr_sleep(int ms);
 void gotoxy(int x, int y);
 void hide_cursor();
 void show_cursor();
+void print_progress(int percent, int width);
+void print_loading(const char* msg, int ms);
+void print_box(const char* title, int width);
 void add_to_history(const char* cmd);
 int safe_strcpy(char* dest, const char* src, size_t dest_size);
 

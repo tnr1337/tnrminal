@@ -221,22 +221,52 @@ int main() {
     srand((unsigned int)time(NULL));
     update_cwd();
 
-    // Startup Banner
+    // Clear screen and animated startup
+    system("cls");
+    hide_cursor();
+    
+    // Startup Animation
     set_col(C_HACK);
+    const char* banner[] = {
+        "  ████████╗███╗   ██╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗",
+        "  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║",
+        "     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║",
+        "     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║",
+        "     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗",
+        "     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝"
+    };
+    
     printf("\n");
-    printf("  ████████╗███╗   ██╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗\n");
-    printf("  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║\n");
-    printf("     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║\n");
-    printf("     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║\n");
-    printf("     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗\n");
-    printf("     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝\n");
+    for (int i = 0; i < 6; i++) {
+        printf("%s\n", banner[i]);
+        tnr_sleep(50);
+    }
     set_col(C_RESET);
+    printf("\n");
+    
+    // Loading animation
+    printf("  ");
+    set_col(C_INFO);
+    printf("[");
+    for (int i = 0; i < 40; i++) {
+        set_col(C_OK);
+        printf("█");
+        tnr_sleep(20);
+    }
+    set_col(C_INFO);
+    printf("] ");
+    set_col(C_OK);
+    printf("Ready!\n");
+    set_col(C_RESET);
+    
     printf("\n");
     set_col(C_OK);
-    printf("  TNRM1N4L v%s | Custom Terminal Emulator\n", VERSION);
+    printf("  TNRM1N4L v%s | Ultra Pro Terminal | Built %s\n", VERSION, BUILD_DATE);
     set_col(C_INFO);
-    printf("  Type 'help' for commands, 'man <cmd>' for detailed help.\n");
+    printf("  120+ commands | Type 'help' for list, 'man <cmd>' for details\n");
+    printf("  Type 'fetch' for system info | 'about' for credits\n");
     set_col(C_RESET);
+    show_cursor();
 
     char input[MAX_CMD_LEN];
     char input_copy[MAX_CMD_LEN];  // Keep original for history

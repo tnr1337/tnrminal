@@ -894,72 +894,203 @@ void cmd_http(char** args, int c) {
 // NEW GAMES COMMANDS (8)
 // ============================================================================
 
-// Hangman Game
+// Hangman Game - Enhanced with ASCII Art
 void cmd_hangman(char** args, int c) {
-    const char* words[] = {"PROGRAMMING", "TERMINAL", "COMPUTER", "KEYBOARD", "ALGORITHM"};
-    const char* word = words[rand() % 5];
+    const char* words[] = {"PROGRAMMING", "TERMINAL", "COMPUTER", "KEYBOARD", "ALGORITHM",
+                           "DEVELOPER", "SOFTWARE", "HARDWARE", "NETWORK", "DATABASE"};
+    const char* word = words[rand() % 10];
     int len = (int)strlen(word);
-    char guessed[26] = {0};
+    char guessed[27] = {0};
     int wrong = 0, gl = 0;
     char revealed[20];
     for (int i = 0; i < len; i++) revealed[i] = '_';
     revealed[len] = '\0';
     
-    print_header("HANGMAN");
-    printf("Guess the word! (6 tries)\n");
+    const char* hangman[7][6] = {
+        {"  +---+  ", "  |   |  ", "      |  ", "      |  ", "      |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", "      |  ", "      |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", "  |   |  ", "      |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", " /|   |  ", "      |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", " /|\\  |  ", "      |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", " /|\\  |  ", " /    |  ", "=========\n"},
+        {"  +---+  ", "  |   |  ", "  O   |  ", " /|\\  |  ", " / \\  |  ", "=========\n"}
+    };
+    
+    system("cls");
+    print_header("HANGMAN - Guess the word!");
     
     while (wrong < 6 && strcmp(revealed, word) != 0) {
+        gotoxy(0, 3);
+        
+        // Draw hangman
+        set_col(C_ERR);
+        for (int i = 0; i < 6; i++) printf("%s\n", hangman[wrong][i]);
+        set_col(C_RESET);
+        
+        // Draw word
         printf("\n  Word: ");
+        set_col(C_OK);
         for (int i = 0; i < len; i++) printf("%c ", revealed[i]);
-        printf("\n  Wrong: %d/6  Guessed: %s\n", wrong, guessed);
-        printf("  Letter: ");
+        set_col(C_RESET);
+        
+        printf("\n\n  Tries: %d/6  |  Guessed: ", wrong);
+        set_col(C_WARN);
+        printf("%s\n", guessed);
+        set_col(C_RESET);
+        
+        printf("\n  Enter a letter: ");
         char ch = _getch();
         ch = (ch >= 'a' && ch <= 'z') ? ch - 32 : ch;
         printf("%c\n", ch);
-        if (strchr(guessed, ch)) { printf("  Already guessed!\n"); continue; }
+        
+        if (ch < 'A' || ch > 'Z') { printf("  Invalid! Use A-Z\n"); tnr_sleep(500); continue; }
+        if (strchr(guessed, ch)) { printf("  Already guessed!\n"); tnr_sleep(500); continue; }
+        
         guessed[gl++] = ch;
+        guessed[gl] = '\0';
+        
         int found = 0;
-        for (int i = 0; i < len; i++) if (word[i] == ch) { revealed[i] = ch; found = 1; }
+        for (int i = 0; i < len; i++) {
+            if (word[i] == ch) { revealed[i] = ch; found = 1; }
+        }
         if (!found) wrong++;
     }
-    printf("\n");
-    set_col(strcmp(revealed, word) == 0 ? C_OK : C_ERR);
-    printf("  %s! Word: %s\n", strcmp(revealed, word) == 0 ? "YOU WIN" : "GAME OVER", word);
+    
+    // Final draw
+    gotoxy(0, 3);
+    set_col(wrong < 6 ? C_OK : C_ERR);
+    for (int i = 0; i < 6; i++) printf("%s\n", hangman[wrong][i]);
+    
+    printf("\n  ");
+    if (strcmp(revealed, word) == 0) {
+        set_col(C_OK);
+        printf("★ CONGRATULATIONS! You guessed: %s ★\n", word);
+    } else {
+        set_col(C_ERR);
+        printf("☠ GAME OVER! The word was: %s ☠\n", word);
+    }
     set_col(C_RESET);
 }
 
-// Tic-Tac-Toe
+// Tic-Tac-Toe - Enhanced with better AI
 void cmd_tictactoe(char** args, int c) {
     char board[9] = {'1','2','3','4','5','6','7','8','9'};
     int player = 1, moves = 0;
+    
+    system("cls");
     print_header("TIC-TAC-TOE");
-    printf("You are X. Enter 1-9 to place.\n");
+    set_col(C_INFO);
+    printf("  You are X | Computer is O | Enter 1-9 to place\n\n");
+    set_col(C_RESET);
     
     while (moves < 9) {
-        printf("\n   %c | %c | %c\n  ---+---+---\n   %c | %c | %c\n  ---+---+---\n   %c | %c | %c\n\n",
-               board[0],board[1],board[2],board[3],board[4],board[5],board[6],board[7],board[8]);
+        // Draw board with colors
+        printf("\n");
+        for (int row = 0; row < 3; row++) {
+            printf("       ");
+            for (int col = 0; col < 3; col++) {
+                int idx = row * 3 + col;
+                if (board[idx] == 'X') set_col(C_OK);
+                else if (board[idx] == 'O') set_col(C_ERR);
+                else set_col(C_INFO);
+                printf(" %c ", board[idx]);
+                set_col(C_RESET);
+                if (col < 2) printf("|");
+            }
+            printf("\n");
+            if (row < 2) printf("       ---+---+---\n");
+        }
+        printf("\n");
+        
         int pos;
         if (player == 1) {
-            printf("  Your move: "); char ch = _getch(); printf("%c\n", ch);
+            set_col(C_OK);
+            printf("  Your move (1-9): ");
+            set_col(C_RESET);
+            char ch = _getch();
+            printf("%c\n", ch);
             pos = ch - '1';
-            if (pos < 0 || pos > 8 || board[pos] == 'X' || board[pos] == 'O') continue;
+            if (pos < 0 || pos > 8 || board[pos] == 'X' || board[pos] == 'O') {
+                set_col(C_ERR);
+                printf("  Invalid move!\n");
+                set_col(C_RESET);
+                tnr_sleep(500);
+                continue;
+            }
             board[pos] = 'X';
         } else {
-            do { pos = rand() % 9; } while (board[pos] == 'X' || board[pos] == 'O');
-            board[pos] = 'O'; printf("  Computer: %d\n", pos + 1);
+            // Simple AI: Try to win, block, or random
+            int aiPos = -1;
+            int w[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
+            
+            // Try to win
+            for (int i = 0; i < 8 && aiPos == -1; i++) {
+                int oCount = 0, empty = -1;
+                for (int j = 0; j < 3; j++) {
+                    if (board[w[i][j]] == 'O') oCount++;
+                    else if (board[w[i][j]] != 'X') empty = w[i][j];
+                }
+                if (oCount == 2 && empty >= 0) aiPos = empty;
+            }
+            
+            // Try to block
+            for (int i = 0; i < 8 && aiPos == -1; i++) {
+                int xCount = 0, empty = -1;
+                for (int j = 0; j < 3; j++) {
+                    if (board[w[i][j]] == 'X') xCount++;
+                    else if (board[w[i][j]] != 'O') empty = w[i][j];
+                }
+                if (xCount == 2 && empty >= 0) aiPos = empty;
+            }
+            
+            // Take center or random
+            if (aiPos == -1 && board[4] != 'X' && board[4] != 'O') aiPos = 4;
+            while (aiPos == -1) {
+                pos = rand() % 9;
+                if (board[pos] != 'X' && board[pos] != 'O') aiPos = pos;
+            }
+            
+            board[aiPos] = 'O';
+            set_col(C_ERR);
+            printf("  Computer plays: %d\n", aiPos + 1);
+            set_col(C_RESET);
+            tnr_sleep(400);
         }
         moves++;
+        
+        // Check winner
         int w[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
         for (int i = 0; i < 8; i++) {
             if (board[w[i][0]] == board[w[i][1]] && board[w[i][1]] == board[w[i][2]]) {
+                // Draw final board
+                printf("\n");
+                for (int row = 0; row < 3; row++) {
+                    printf("       ");
+                    for (int col = 0; col < 3; col++) {
+                        int idx = row * 3 + col;
+                        if (board[idx] == 'X') set_col(C_OK);
+                        else if (board[idx] == 'O') set_col(C_ERR);
+                        else set_col(C_INFO);
+                        printf(" %c ", board[idx]);
+                        set_col(C_RESET);
+                        if (col < 2) printf("|");
+                    }
+                    printf("\n");
+                    if (row < 2) printf("       ---+---+---\n");
+                }
+                printf("\n  ");
                 set_col(player == 1 ? C_OK : C_ERR);
-                printf("  %s wins!\n", player == 1 ? "You" : "Computer");
-                set_col(C_RESET); return;
+                printf("%s wins!\n", player == 1 ? "★ You" : "☠ Computer");
+                set_col(C_RESET);
+                return;
             }
         }
         player = (player == 1) ? 2 : 1;
     }
-    printf("  Draw!\n");
+    printf("\n  ");
+    set_col(C_WARN);
+    printf("It's a Draw!\n");
+    set_col(C_RESET);
 }
 
 // Quiz Game
