@@ -1382,43 +1382,78 @@ void cmd_clock(char** args, int c) {
     printf("\n");
 }
 
-// About
+// About - Enhanced
 void cmd_about(char** args, int c) {
-    print_header("ABOUT TNRM1N4L");
+    system("cls");
+    
     set_col(C_HACK);
-    printf("\n  ████████╗███╗   ██╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗\n");
-    printf("  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║\n");
-    printf("     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║\n");
-    printf("     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║\n");
-    printf("     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗\n");
-    printf("     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝\n");
+    printf("\n");
+    printf("  ████████╗███╗   ██╗██████╗ ███╗   ███╗ ██╗███╗   ██╗    ██████╗ ██╗\n");
+    printf("  ╚══██╔══╝████╗  ██║██╔══██╗████╗ ████║███║████╗  ██║    ╚════██╗██║\n");
+    printf("     ██║   ██╔██╗ ██║██████╔╝██╔████╔██║ ██║██╔██╗ ██║     █████╔╝██║\n");
+    printf("     ██║   ██║╚██╗██║██╔══██╗██║╚██╔╝██║ ██║██║╚██╗██║     ╚═══██╗╚═╝\n");
+    printf("     ██║   ██║ ╚████║██║  ██║██║ ╚═╝ ██║ ██║██║ ╚████║    ██████╔╝██╗\n");
+    printf("     ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═╝╚═╝  ╚═══╝    ╚═════╝ ╚═╝\n");
     set_col(C_RESET);
-    printf("\n  Version:     %s\n", VERSION);
-    printf("  Build Date:  %s\n", BUILD_DATE);
-    printf("  Platform:    Windows Native\n");
-    printf("  Language:    C (C11)\n");
-    printf("\n  A custom terminal emulator with 100+ commands.\n");
-    printf("  Built for hackers, by hackers.\n\n");
+    
+    printf("\n");
     set_col(C_INFO);
-    printf("  GitHub: github.com/your-repo/tnrminal\n");
+    printf("  ┌───────────────────────────────────────────────────┐\n");
+    printf("  │            ULTRA PRO TERMINAL EMULATOR            │\n");
+    printf("  └───────────────────────────────────────────────────┘\n");
     set_col(C_RESET);
+    
+    printf("\n");
+    printf("  "); set_col(C_OK); printf("█ "); set_col(C_RESET); printf("Version:    "); set_col(C_WHITE); printf("%s\n", VERSION);
+    printf("  "); set_col(C_OK); printf("█ "); set_col(C_RESET); printf("Build Date: "); set_col(C_WHITE); printf("%s\n", BUILD_DATE);
+    printf("  "); set_col(C_OK); printf("█ "); set_col(C_RESET); printf("Platform:   "); set_col(C_WHITE); printf("Windows Native (x64)\n");
+    printf("  "); set_col(C_OK); printf("█ "); set_col(C_RESET); printf("Language:   "); set_col(C_WHITE); printf("C (C11 Standard)\n");
+    printf("  "); set_col(C_OK); printf("█ "); set_col(C_RESET); printf("Commands:   "); set_col(C_WHITE); printf("120+ built-in commands\n");
+    set_col(C_RESET);
+    
+    printf("\n");
+    set_col(C_WARN);
+    printf("  Features:\n");
+    set_col(C_RESET);
+    printf("    • System monitoring & process management\n");
+    printf("    • Advanced file operations\n");
+    printf("    • Data processing & encryption\n");
+    printf("    • Network utilities\n");
+    printf("    • Built-in games (Snake, Hangman, Tic-Tac-Toe)\n");
+    printf("    • Productivity tools (notes, timers, aliases)\n");
+    
+    printf("\n");
+    set_col(C_INFO);
+    printf("  Built for hackers, by hackers.\n");
+    printf("  Type 'help' for commands, 'man <cmd>' for details.\n");
+    set_col(C_RESET);
+    printf("\n");
 }
 
-// Version
+// Version - Enhanced
 void cmd_version(char** args, int c) {
     print_header("VERSION INFO");
-    printf("\n  TNRM1N4L %s\n", VERSION);
-    printf("  Build: %s\n\n", BUILD_DATE);
-    printf("  Changelog:\n");
+    
     set_col(C_OK);
-    printf("  v4.0 - 50 new commands added\n");
-    printf("       - Games: hangman, tictactoe, quiz, slots, rps\n");
-    printf("       - System: kill, meminfo, cpuinfo, diskinfo\n");
-    printf("       - Network: wget, dns, traceroute, ifconfig\n");
-    printf("       - Data: md5, sha256, json, csv viewer\n");
-    printf("       - Productivity: alias, bookmark, notes, timer\n");
+    printf("\n  TNRM1N4L ");
+    set_col(C_WHITE);
+    printf("%s\n", VERSION);
+    set_col(C_INFO);
+    printf("  Build Date: %s\n\n", BUILD_DATE);
     set_col(C_RESET);
-    printf("  v3.0 - Command history, dynamic calendar, man pages\n");
-    printf("  v2.0 - File operations, data processing\n");
-    printf("  v1.0 - Initial release\n");
+    
+    printf("  ┌─ Changelog ────────────────────────────────────┐\n");
+    set_col(C_OK);
+    printf("  │ v4.0 (Ultra Pro)                              │\n");
+    set_col(C_RESET);
+    printf("  │   + 50 new commands added                     │\n");
+    printf("  │   + Enhanced games with ASCII art             │\n");
+    printf("  │   + Better AI in Tic-Tac-Toe                  │\n");
+    printf("  │   + Animated startup sequence                 │\n");
+    printf("  │   + Progress bars and loading animations      │\n");
+    printf("  │                                                │\n");
+    printf("  │ v3.0 - History, calendar, man pages           │\n");
+    printf("  │ v2.0 - File operations, data processing       │\n");
+    printf("  │ v1.0 - Initial release                        │\n");
+    printf("  └────────────────────────────────────────────────┘\n");
 }
