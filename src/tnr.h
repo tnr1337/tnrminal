@@ -61,7 +61,7 @@ typedef struct {
 extern HANDLE hConsole;
 extern int running;
 extern char current_dir[MAX_PATH];
-extern char cmd_history[MAX_HISTORY][MAX_CMD_LEN];
+extern char cmd_history[][MAX_CMD_LEN];
 extern int history_count;
 extern int history_index;
 
