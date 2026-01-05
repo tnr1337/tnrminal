@@ -8,19 +8,24 @@
 #include <time.h>
 #include <direct.h> // _getcwd, _chdir
 #include <conio.h> // _getch
+#include <sys/stat.h>
 
 // --- Version & Identity ---
-#define VERSION "3.0 (Pro)"
+#define VERSION "4.0 (Ultra Pro)"
 #define HOST_NAME "TNRM1N4L"
+#define BUILD_DATE __DATE__
 
 // --- Buffer Sizes ---
 #define MAX_CMD_LEN 1024
 #define MAX_ARGS 64
 #define MAX_LINE_LEN 256
 #define MAX_LINES_BUFFER 100
-#define MAX_HISTORY 50
+#define MAX_HISTORY 100
 #define MAX_USERNAME 256
 #define MAX_HOSTNAME 256
+#define MAX_ALIASES 50
+#define MAX_BOOKMARKS 20
+#define MAX_NOTES 50
 
 // --- Display Constants ---
 #define COLUMNS_HELP 3
@@ -42,6 +47,8 @@
 #define C_HEAD  13 // Magenta
 #define C_HACK  2  // Dark Green (Matrix)
 #define C_TITLE 9  // Blue
+#define C_GOLD  6  // Gold/Brown
+#define C_WHITE 15 // Bright White
 
 // --- Structs ---
 typedef struct {
@@ -90,6 +97,17 @@ void cmd_ps(char** args, int c);
 void cmd_shutdown(char** args, int c);
 void cmd_reboot(char** args, int c);
 void cmd_lock(char** args, int c);
+// New System Commands
+void cmd_kill(char** args, int c);
+void cmd_taskmgr(char** args, int c);
+void cmd_meminfo(char** args, int c);
+void cmd_cpuinfo(char** args, int c);
+void cmd_battery(char** args, int c);
+void cmd_diskinfo(char** args, int c);
+void cmd_services(char** args, int c);
+void cmd_netstat(char** args, int c);
+void cmd_datetime(char** args, int c);
+void cmd_syslog(char** args, int c);
 
 // File
 void cmd_ls(char** args, int c);
@@ -110,6 +128,17 @@ void cmd_find(char** args, int c);
 void cmd_tree(char** args, int c);
 void cmd_diff(char** args, int c);
 void cmd_du(char** args, int c);
+// New File Commands
+void cmd_rename(char** args, int c);
+void cmd_stat(char** args, int c);
+void cmd_chmod(char** args, int c);
+void cmd_ln(char** args, int c);
+void cmd_truncate(char** args, int c);
+void cmd_append(char** args, int c);
+void cmd_fsize(char** args, int c);
+void cmd_ftype(char** args, int c);
+void cmd_search(char** args, int c);
+void cmd_zip(char** args, int c);
 
 // Data
 void cmd_grep(char** args, int c);
@@ -125,11 +154,27 @@ void cmd_hex(char** args, int c);
 void cmd_base64(char** args, int c);
 void cmd_encrypt(char** args, int c);
 void cmd_decrypt(char** args, int c);
+// New Data Commands
+void cmd_md5(char** args, int c);
+void cmd_sha256(char** args, int c);
+void cmd_json(char** args, int c);
+void cmd_csv(char** args, int c);
+void cmd_count(char** args, int c);
+void cmd_replace(char** args, int c);
+void cmd_trim(char** args, int c);
+void cmd_split(char** args, int c);
 
 // Network
 void cmd_ping(char** args, int c);
 void cmd_ip(char** args, int c);
 void cmd_curl(char** args, int c);
+// New Network Commands
+void cmd_wget(char** args, int c);
+void cmd_dns(char** args, int c);
+void cmd_traceroute(char** args, int c);
+void cmd_ifconfig(char** args, int c);
+void cmd_port(char** args, int c);
+void cmd_http(char** args, int c);
 
 // Fun
 void cmd_matrix(char** args, int c);
@@ -141,6 +186,15 @@ void cmd_beep(char** args, int c);
 void cmd_selfdestruct(char** args, int c);
 void cmd_rand(char** args, int c);
 void cmd_dice(char** args, int c);
+// New Games Commands
+void cmd_hangman(char** args, int c);
+void cmd_tictactoe(char** args, int c);
+void cmd_quiz(char** args, int c);
+void cmd_typing(char** args, int c);
+void cmd_countdown(char** args, int c);
+void cmd_stopwatch(char** args, int c);
+void cmd_slots(char** args, int c);
+void cmd_rps(char** args, int c);
 
 // Extra/Utils
 void cmd_calc(char** args, int c);
@@ -158,6 +212,15 @@ void cmd_help(char** args, int c);
 void cmd_man(char** args, int c);
 void cmd_run(char** args, int c);
 void cmd_exit(char** args, int c);
+// New Productivity Commands
+void cmd_alias(char** args, int c);
+void cmd_bookmark(char** args, int c);
+void cmd_notes(char** args, int c);
+void cmd_reminder(char** args, int c);
+void cmd_timer(char** args, int c);
+void cmd_clock(char** args, int c);
+void cmd_about(char** args, int c);
+void cmd_version(char** args, int c);
 
 // Shared Dispatch Helper
 void dispatch_command(char** args, int arg_c);
